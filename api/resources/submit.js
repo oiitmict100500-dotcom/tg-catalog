@@ -15,17 +15,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Парсим данные в зависимости от типа контента
-    let data = {};
-    
-    if (req.headers['content-type']?.includes('multipart/form-data')) {
-      // Для multipart/form-data используем встроенный парсер
-      // В Vercel это обрабатывается автоматически через req.body
-      data = req.body || {};
-    } else {
-      // Для JSON
-      data = req.body || {};
-    }
+    // Парсим JSON данные
+    const data = req.body || {};
 
     const {
       title,
@@ -35,12 +26,37 @@ export default async function handler(req, res) {
       categoryId,
       subcategoryId,
       coverImage,
-      coverImageFile,
       isPrivate,
     } = data;
 
+    // Логирование для отладки
+    console.log('Received data:', {
+      hasTitle: !!title,
+      hasCategoryId: !!categoryId,
+      hasSubcategoryId: !!subcategoryId,
+      hasDescription: !!description,
+      categoryId,
+      subcategoryId,
+      isPrivate,
+      hasTelegramLink: !!telegramLink,
+      hasTelegramUsername: !!telegramUsername,
+      hasCoverImage: !!coverImage,
+    });
+
     // Валидация обязательных полей
-    if (!title || !categoryId || !subcategoryId) {
+    if (!title || !title.trim()) {
+      return res.status(400).json({ 
+        message: 'Заполните все обязательные поля: название, категория, подкатегория' 
+      });
+    }
+
+    if (!categoryId) {
+      return res.status(400).json({ 
+        message: 'Заполните все обязательные поля: название, категория, подкатегория' 
+      });
+    }
+
+    if (!subcategoryId) {
       return res.status(400).json({ 
         message: 'Заполните все обязательные поля: название, категория, подкатегория' 
       });
@@ -63,14 +79,17 @@ export default async function handler(req, res) {
       }
     }
 
-    // Обработка загрузки файла обложки (если есть)
-    let finalCoverImage = coverImage;
-    if (coverImageFile) {
-      // Здесь должна быть логика загрузки файла на хостинг
-      // Пока просто возвращаем успех
-      // В реальном приложении нужно загрузить файл на S3, Cloudinary и т.д.
-      finalCoverImage = coverImageFile; // Временное решение
+    // Проверка наличия обложки
+    if (!coverImage) {
+      return res.status(400).json({ 
+        message: 'Загрузите обложку (файл изображения)' 
+      });
     }
+
+    // Обработка загрузки файла обложки (base64 строка)
+    // В реальном приложении здесь будет логика загрузки base64 на S3, Cloudinary и т.д.
+    // Пока просто сохраняем base64 строку
+    const finalCoverImage = coverImage;
 
     // Здесь должна быть логика сохранения в базу данных
     // Пока просто возвращаем успех

@@ -173,28 +173,38 @@ function SubmitResource() {
     setLoading(true);
 
     try {
-
-      // Подготовка данных для отправки
-      const submitData = new FormData();
-      submitData.append('title', formData.title);
-      submitData.append('description', formData.description || '');
-      submitData.append('categoryId', formData.categoryId);
-      submitData.append('subcategoryId', formData.subcategoryId);
-      submitData.append('isPrivate', formData.isPrivate.toString());
-      
-      if (formData.telegramLink) {
-        submitData.append('telegramLink', formData.telegramLink);
-      }
-      if (formData.telegramUsername) {
-        submitData.append('telegramUsername', formData.telegramUsername);
-      }
+      // Конвертируем файл в base64
+      let coverImageBase64 = null;
       if (formData.coverImageFile) {
-        submitData.append('coverImageFile', formData.coverImageFile);
+        coverImageBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Failed to convert file to base64'));
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(formData.coverImageFile!);
+        });
       }
+
+      // Подготовка данных для отправки (JSON вместо FormData)
+      const submitData = {
+        title: formData.title,
+        description: formData.description || '',
+        categoryId: formData.categoryId,
+        subcategoryId: formData.subcategoryId,
+        isPrivate: formData.isPrivate,
+        telegramLink: formData.telegramLink || '',
+        telegramUsername: formData.telegramUsername || '',
+        coverImage: coverImageBase64,
+      };
 
       await axios.post('/api/resources/submit', submitData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
 
