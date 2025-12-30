@@ -110,11 +110,20 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
     // Обработчик авторизации Telegram
     window.onTelegramAuth = async (telegramUser: any) => {
       try {
-        console.log('Telegram auth callback received:', {
+        console.log('🔐 Telegram auth callback received:', {
           id: telegramUser.id,
           username: telegramUser.username,
+          first_name: telegramUser.first_name,
           hasHash: !!telegramUser.hash,
+          auth_date: telegramUser.auth_date,
         });
+        
+        // Проверяем, что все необходимые данные есть
+        if (!telegramUser.hash || !telegramUser.id || !telegramUser.first_name) {
+          console.error('❌ Неполные данные от Telegram:', telegramUser);
+          alert('Ошибка: неполные данные от Telegram. Попробуйте еще раз.');
+          return;
+        }
 
         // Формируем тело запроса, исключая пустые поля
         const requestBody: any = {
