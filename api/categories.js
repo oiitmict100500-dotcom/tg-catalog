@@ -1,4 +1,5 @@
 // Простой API endpoint для категорий (без базы данных)
+// Vercel Serverless Function
 export default function handler(req, res) {
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
