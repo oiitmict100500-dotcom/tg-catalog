@@ -133,11 +133,15 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
         }
 
         const data = await response.json();
+        console.log('✅ Auth successful, user:', data.user?.username || data.user?.email);
         
         // Сохраняем токен
         if (data.token) {
           authService.setToken(data.token);
           window.dispatchEvent(new Event('authChange'));
+          console.log('✅ Token saved');
+        } else {
+          console.warn('⚠️ No token in response');
         }
 
         if (onAuth) {
@@ -145,6 +149,7 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
         }
         
         // Перезагружаем страницу для обновления состояния
+        console.log('🔄 Reloading page...');
         window.location.reload();
       } catch (error: any) {
         console.error('Ошибка авторизации через Telegram:', error);
