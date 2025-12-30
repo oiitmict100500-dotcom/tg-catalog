@@ -1,7 +1,7 @@
 // Тестовый endpoint для проверки работы хранилища
 // Vercel Serverless Function
 
-import { loadSubmissions, addSubmission } from './storage.js';
+import { loadSubmissions, addSubmission, getStorageInfo } from './shared-storage.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,14 +15,12 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const submissions = loadSubmissions();
+      const storageInfo = getStorageInfo();
       return res.status(200).json({
         message: 'Storage test',
         submissions: submissions,
         count: submissions.length,
-        storageInfo: {
-          hasGlobalStorage: typeof global !== 'undefined' && !!global.moderationStorage,
-          globalStorageCount: global.moderationStorage?.submissions?.length || 0,
-        },
+        storageInfo: storageInfo,
       });
     } catch (error) {
       return res.status(500).json({ error: error.message });
