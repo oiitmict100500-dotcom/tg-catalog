@@ -151,7 +151,12 @@ function Header() {
   const handleLogout = () => {
     authService.logout();
     setUser(null);
-    window.location.href = '/';
+    setIsUserMenuOpen(false);
+    // Очищаем localStorage полностью
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    // Перезагружаем страницу для полного сброса состояния
+    window.location.reload();
   };
 
   return (
