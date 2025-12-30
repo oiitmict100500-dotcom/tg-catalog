@@ -118,3 +118,95 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 4px;
+  color: var(--tg-color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.image-upload-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upload-option-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--tg-border-color);
+  padding-bottom: 8px;
+}
+
+.upload-option-tabs button {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--tg-color-text-secondary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  margin-bottom: -10px;
+}
+
+.upload-option-tabs button.active {
+  color: var(--tg-color-primary);
+  border-bottom-color: var(--tg-color-primary);
+}
+
+.upload-option-tabs button:hover {
+  color: var(--tg-color-text);
+}
+
+.file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-upload input[type="file"] {
+  padding: 8px;
+  border: 2px dashed var(--tg-border-color);
+  border-radius: 8px;
+  background: var(--tg-input-bg);
+  cursor: pointer;
+}
+
+.file-upload input[type="file"]:hover {
+  border-color: var(--tg-color-primary);
+}
+
+.image-preview {
+  margin-top: 12px;
+  max-width: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--tg-border-color);
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
