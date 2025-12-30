@@ -37,9 +37,13 @@ function Home() {
 
   // Логирование для диагностики
   useEffect(() => {
-    console.log('Categories loaded:', categories.length);
+    if (categories.length === 0) {
+      console.warn('⚠️ Категории не загружены! Проверьте API /api/categories');
+    } else {
+      console.log('✅ Categories loaded:', categories.length);
+      console.log('Category types:', categories.map(c => c.type));
+    }
     console.log('Paid resources loaded:', Object.keys(paidResources).length);
-    console.log('Category types:', categories.map(c => c.type));
   }, [categories, paidResources]);
 
   useEffect(() => {
@@ -156,24 +160,38 @@ function Home() {
   const renderPaidSection = (categoryType: string) => {
     const category = categories.find(c => c.type === categoryType);
     
-    // Если категория еще не загружена, показываем заглушку
+    // Если категория еще не загружена, показываем пустые слоты для покупки
     if (!category) {
+      const categoryNames: Record<string, string> = {
+        channel: 'Каналы',
+        group: 'Группы',
+        bot: 'Боты',
+        sticker: 'Стикеры',
+        emoji: 'Эмодзи',
+      };
+      
       return (
         <div key={categoryType} className={`paid-section paid-section-${categoryType}`}>
           <div className="paid-section-header">
             <h2>
               <span className="category-icon-large">{getCategoryIcon(categoryType)}</span>
-              Загрузка...
+              {categoryNames[categoryType] || 'Категория'}
+              <span className="paid-section-subtitle"> - Рекомендуемые</span>
             </h2>
+            <div className={`paid-badge paid-badge-${categoryType}`}>
+              {getCategoryBadge(categoryType)}
+            </div>
           </div>
           <div className="paid-resources-grid">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={`loading-${index}`} className="paid-resource-card empty-slot">
+              <div key={`empty-${index}`} className="paid-resource-card empty-slot clickable-slot">
                 <div className="paid-resource-cover empty-cover">
                   <div className="empty-placeholder">{getCategoryIcon(categoryType)}</div>
                 </div>
                 <div className="paid-resource-content">
-                  <h3 className="empty-title">Загрузка...</h3>
+                  <h3 className="empty-title">Свободное место</h3>
+                  <p className="empty-text">Купить рекламный слот</p>
+                  <div className="paid-resource-link empty-link">💎 Разместить</div>
                 </div>
               </div>
             ))}
