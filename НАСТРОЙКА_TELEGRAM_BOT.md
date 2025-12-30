@@ -20,6 +20,71 @@
 
 ## Шаг 2: Настройка токена бота в Backend
 
+Теперь нужно добавить токен бота в переменные окружения вашего backend сервера.
+
+### Для локальной разработки:
+
+Создайте файл `backend/.env` и добавьте:
+
+```env
+TELEGRAM_BOT_TOKEN=8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM
+```
+
+### Для production (Railway):
+
+1. Откройте https://railway.app
+2. Войдите в свой аккаунт
+3. Откройте проект с backend
+4. Нажмите на сервис (service)
+5. Перейдите в **Variables**
+6. Нажмите **+ New Variable**
+7. Добавьте:
+   - **Key:** `TELEGRAM_BOT_TOKEN`
+   - **Value:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
+8. Сохраните
+9. Railway автоматически перезапустит deployment
+
+### Для production (Render):
+
+1. Откройте https://render.com
+2. Войдите в свой аккаунт
+3. Откройте проект с backend
+4. Перейдите в **Environment**
+5. Нажмите **Add Environment Variable**
+6. Добавьте:
+   - **Key:** `TELEGRAM_BOT_TOKEN`
+   - **Value:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
+7. Сохраните
+8. Render автоматически перезапустит deployment
+
+### Для production (Heroku):
+
+1. Откройте https://heroku.com
+2. Войдите в свой аккаунт
+3. Откройте приложение с backend
+4. Перейдите в **Settings → Config Vars**
+5. Нажмите **Reveal Config Vars**
+6. Нажмите **Add**
+7. Добавьте:
+   - **Key:** `TELEGRAM_BOT_TOKEN`
+   - **Value:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
+8. Сохраните
+
+### Для Vercel (если backend на Vercel):
+
+1. Откройте https://vercel.com
+2. Войдите в свой аккаунт
+3. Откройте проект backend (это должен быть ОТДЕЛЬНЫЙ проект от frontend!)
+4. Перейдите в **Settings → Environment Variables**
+5. Нажмите **Add New**
+6. Добавьте:
+   - **Name:** `TELEGRAM_BOT_TOKEN`
+   - **Value:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
+   - **Environment:** Production, Preview, Development (выберите все)
+7. Сохраните и перезапустите deployment
+
+## Шаг 3: Настройка VITE_API_URL в Frontend (Vercel)
+
 ### Что такое VITE_API_URL?
 
 `VITE_API_URL` — это адрес вашего **backend сервера** (сервера с API). Frontend (ваш сайт) должен знать, куда отправлять запросы к API.
@@ -67,7 +132,7 @@
 
 #### Вариант Б: Backend еще не развернут
 
-Если backend еще не развернут, сначала нужно его развернуть. См. файл `ИСПРАВЛЕНИЕ_ОШИБОК.md` в конце раздела "Если backend еще не развернут".
+Если backend еще не развернут, сначала нужно его развернуть на Railway, Render или другом хостинге.
 
 ---
 
@@ -129,33 +194,6 @@ https://tg-catalog-backend.railway.app/  ← лишний слеш в конце
 3. Откройте консоль браузера (F12)
 4. НЕ должно быть ошибки: "VITE_API_URL указывает на frontend домен!"
 5. Если ошибка есть — значит вы указали frontend URL вместо backend URL
-
-## Шаг 4: Проверка настройки
-
-### Для локальной разработки:
-
-Создайте файл `backend/.env` и добавьте:
-
-```env
-TELEGRAM_BOT_TOKEN=8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM
-```
-
-### Для production (Railway/Render/Heroku):
-
-Добавьте переменную окружения:
-
-- **Имя:** `TELEGRAM_BOT_TOKEN`
-- **Значение:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
-
-### Для Vercel (если backend на Vercel):
-
-1. Откройте проект в Vercel
-2. Перейдите в **Settings → Environment Variables**
-3. Добавьте переменную:
-   - **Name:** `TELEGRAM_BOT_TOKEN`
-   - **Value:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
-   - **Environment:** Production, Preview, Development (выберите все)
-4. Сохраните и перезапустите deployment
 
 ## Шаг 4: Проверка настройки
 
