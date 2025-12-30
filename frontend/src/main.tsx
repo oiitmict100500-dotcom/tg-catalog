@@ -1,87 +1,15 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
+import axios from 'axios';
+import { API_BASE_URL } from './config/api.config';
+import './index.css';
 
 console.log('📄 main.tsx script started');
 console.log('📦 React version:', React.version);
 console.log('📦 Document ready:', document.readyState);
 console.log('📦 Root element:', document.getElementById('root'));
-
-// Простой компонент
-function SimpleApp() {
-  console.log('✅ SimpleApp component rendering');
-  
-  return React.createElement('div', {
-    style: {
-      padding: '40px',
-      textAlign: 'center',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-    }
-  }, [
-    React.createElement('h1', { 
-      key: 'h1', 
-      style: { fontSize: '3rem', marginBottom: '1rem' } 
-    }, '✅ Приложение работает!'),
-    React.createElement('p', { 
-      key: 'p1',
-      style: { fontSize: '1.2rem', marginBottom: '1rem' }
-    }, 'React успешно загрузился и отрендерился.'),
-    React.createElement('p', { 
-      key: 'p2',
-      style: { fontSize: '0.9rem', opacity: 0.8, marginTop: '2rem' }
-    }, 'Проверьте консоль браузера (F12) для диагностики.'),
-  ]);
-}
-
-// Инициализация
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  console.error('❌ Root element not found!');
-  document.body.innerHTML = '<h1 style="padding: 20px; text-align: center;">Ошибка: элемент #root не найден</h1>';
-} else {
-  console.log('🚀 Starting app initialization...');
-  
-  try {
-    const root = ReactDOM.createRoot(rootElement);
-    console.log('✅ React root created');
-    
-    root.render(
-      React.createElement(React.StrictMode, null,
-        React.createElement(SimpleApp)
-      )
-    );
-    console.log('✅ App render call completed');
-    
-    // Проверяем результат через небольшую задержку
-    setTimeout(() => {
-      if (rootElement.children.length === 0) {
-        console.error('❌ Root element is still empty!');
-        rootElement.innerHTML = `
-          <div style="padding: 40px; text-align: center; font-family: system-ui;">
-            <h1 style="color: #d32f2f;">❌ Приложение не отрендерилось</h1>
-            <p>Проверьте консоль браузера (F12) для ошибок</p>
-          </div>
-        `;
-      } else {
-        console.log('✅ App rendered successfully!');
-        console.log('Root children:', rootElement.children.length);
-      }
-    }, 100);
-  } catch (error) {
-    console.error('❌ Error rendering app:', error);
-    rootElement.innerHTML = `
-      <div style="padding: 40px; text-align: center; font-family: system-ui;">
-        <h1 style="color: #d32f2f;">❌ Ошибка рендеринга</h1>
-        <p>Проверьте консоль браузера (F12)</p>
-        <pre style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: left; max-width: 600px; margin: 20px auto; overflow: auto;">
-          ${error instanceof Error ? error.toString() + '\n' + error.stack : String(error)}
-        </pre>
-      </div>
-    `;
-  }
-}
 
 // Обработка глобальных ошибок
 window.addEventListener('error', (event) => {
@@ -181,7 +109,7 @@ if (!rootElement) {
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
-          <SimpleApp />
+          <App />
         </ErrorBoundary>
       </React.StrictMode>
     );
@@ -193,7 +121,12 @@ if (!rootElement) {
       console.log('Root children count:', rootElement.children.length);
       console.log('Root innerHTML length:', rootElement.innerHTML.length);
       
-      if (rootElement.children.length === 0 && rootElement.innerHTML.trim() === '') {
+      // Проверяем, что контент действительно отрендерился
+      const hasContent = rootElement.children.length > 0 || 
+                        rootElement.innerHTML.trim().length > 0 ||
+                        rootElement.textContent?.trim().length > 0;
+      
+      if (!hasContent) {
         console.error('❌ Root element is still empty after render!');
         console.error('This usually means:');
         console.error('1. An error occurred during render (check errors above)');
@@ -203,8 +136,9 @@ if (!rootElement) {
       } else {
         console.log('✅ App rendered successfully!');
         console.log('First child:', rootElement.children[0]?.tagName || 'none');
+        console.log('Content preview:', rootElement.textContent?.substring(0, 100) || 'empty');
       }
-    }, 200);
+    }, 500);
   } catch (error) {
     console.error('❌ Error during initialization:', error);
     showFallbackError(
@@ -213,5 +147,3 @@ if (!rootElement) {
     );
   }
 }
-
-

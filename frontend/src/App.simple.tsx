@@ -1,5 +1,4 @@
 // Простая версия App для диагностики
-import React from 'react';
 
 function SimpleApp() {
   console.log('✅ SimpleApp component rendering...');
