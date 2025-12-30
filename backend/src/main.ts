@@ -18,6 +18,7 @@ async function bootstrap() {
   // CORS - разрешаем запросы с frontend и Vercel доменов
   const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:3001',
+    'https://tg-catalog-one.vercel.app',
     'https://oiitmict100500-dotcom-tg-catalog.vercel.app',
     /^https:\/\/.*\.vercel\.app$/, // Разрешаем все Vercel preview домены
   ].filter(Boolean);

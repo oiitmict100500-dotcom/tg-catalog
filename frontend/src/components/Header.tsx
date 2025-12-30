@@ -200,7 +200,7 @@ function Header() {
           ) : (
             <div className="telegram-auth-wrapper">
               <TelegramLogin 
-                botName="tg_catalog_bot" 
+                botName="tg_cataIog_bot" 
                 onAuth={(user) => {
                   setUser(user);
                 }}
