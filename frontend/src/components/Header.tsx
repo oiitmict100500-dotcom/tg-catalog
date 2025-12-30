@@ -252,6 +252,14 @@ function Header() {
                 <div className="dropdown-menu user-dropdown">
                   <Link to="/profile" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>Профиль</Link>
                   <Link to="/my-resources" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>Мои ресурсы</Link>
+                  {user?.role === 'admin' && (
+                    <>
+                      <div className="dropdown-divider"></div>
+                      <Link to="/admin" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
+                        ⚙️ Админ панель
+                      </Link>
+                    </>
+                  )}
                   <div className="dropdown-divider"></div>
                   <button onClick={() => { handleLogout(); setIsUserMenuOpen(false); }} className="dropdown-item">Выйти</button>
                 </div>

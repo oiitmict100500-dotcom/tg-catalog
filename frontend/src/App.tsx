@@ -6,6 +6,7 @@ import SubmitResource from './pages/SubmitResource';
 import Profile from './pages/Profile';
 import MyResources from './pages/MyResources';
 import BuyAdSlot from './pages/BuyAdSlot';
+import Admin from './pages/Admin';
 import Header from './components/Header';
 import LoadingFallback from './components/LoadingFallback';
 import './App.css';
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/my-resources" element={<MyResources />} />
                 <Route path="/buy-ad/:categoryId" element={<BuyAdSlot />} />
+                <Route path="/admin" element={<Admin />} />
               </Routes>
             </Suspense>
           </main>

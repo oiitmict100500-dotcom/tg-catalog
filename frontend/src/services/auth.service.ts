@@ -14,6 +14,7 @@ export interface User {
   email?: string | null;
   avatar?: string;
   bio?: string;
+  role?: 'user' | 'admin';
 }
 
 class AuthService {
@@ -96,6 +97,17 @@ class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  isAdmin(): boolean {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return false;
+    try {
+      const user = JSON.parse(userStr);
+      return user.role === 'admin';
+    } catch {
+      return false;
+    }
   }
 }
 

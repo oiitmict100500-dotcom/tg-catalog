@@ -42,6 +42,7 @@ export default async function handler(req, res) {
         email: `${decoded.id}@telegram.local`,
         avatar: null, // Можно добавить сохранение аватара в будущем
         bio: null,
+        role: decoded.role || 'user', // Роль из токена
         createdAt: new Date(decoded.iat * 1000).toISOString(),
       });
     } catch (decodeError) {

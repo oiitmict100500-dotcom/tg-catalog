@@ -38,9 +38,14 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Неверные данные авторизации Telegram' });
     }
 
+    // Проверяем, является ли пользователь админом
+    // Получаем список админов из переменных окружения (через запятую)
+    const adminIds = (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(id => id);
+    const isAdmin = adminIds.includes(id.toString());
+
     // Создаем простой JWT токен (упрощенная версия)
     // В реальном приложении используйте библиотеку jsonwebtoken
-    const token = createSimpleToken(id, username || first_name);
+    const token = createSimpleToken(id, username || first_name, isAdmin);
 
     // Возвращаем данные пользователя и токен
     return res.status(200).json({
@@ -50,6 +55,7 @@ export default async function handler(req, res) {
         email: `${id}@telegram.local`, // Временный email
         avatar: photo_url || null,
         bio: null,
+        role: isAdmin ? 'admin' : 'user',
         createdAt: new Date().toISOString(),
       },
       token: token,
@@ -93,10 +99,11 @@ function verifyTelegramAuth(data, botToken) {
 }
 
 // Простая функция создания токена (в реальном приложении используйте jsonwebtoken)
-function createSimpleToken(userId, username) {
+function createSimpleToken(userId, username, isAdmin = false) {
   const payload = {
     id: userId,
     username: username,
+    role: isAdmin ? 'admin' : 'user',
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 дней
   };
