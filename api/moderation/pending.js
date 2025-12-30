@@ -43,7 +43,13 @@ export default async function handler(req, res) {
     console.log('📋 Loading pending submissions:', {
       count: pendingSubmissions.length,
       ids: pendingSubmissions.map(s => s.id),
+      titles: pendingSubmissions.map(s => s.title),
     });
+    
+    // Если заявок нет, логируем для отладки
+    if (pendingSubmissions.length === 0) {
+      console.log('⚠️ No pending submissions found');
+    }
 
     return res.status(200).json({
       submissions: pendingSubmissions,

@@ -202,10 +202,18 @@ function SubmitResource() {
         coverImage: coverImageBase64,
       };
 
+      // Получаем токен для авторизации
+      const token = authService.getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       await axios.post('/api/resources/submit', submitData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       alert('Заявка отправлена на модерацию! Вы получите уведомление после проверки.');
