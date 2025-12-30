@@ -1,7 +1,7 @@
 // API endpoint для отклонения заявки на модерацию
 // Vercel Serverless Function
 
-import { getSubmissionById, updateSubmission } from './pending.js';
+import { getSubmissionById, updateSubmission } from './storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки

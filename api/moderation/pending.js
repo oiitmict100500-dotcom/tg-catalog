@@ -1,24 +1,6 @@
 // API endpoint для получения заявок на модерацию
 // Vercel Serverless Function
-// ВАЖНО: Для продакшена нужно использовать базу данных вместо in-memory хранилища
-
-// Временное хранилище в памяти (в продакшене использовать БД)
-// В реальном приложении это должно быть в базе данных
-// Используем глобальный объект для сохранения между вызовами в Vercel
-let submissions = [];
-if (typeof global !== 'undefined') {
-  if (!global.moderationStorage) {
-    global.moderationStorage = { submissions: [] };
-  }
-  submissions = global.moderationStorage.submissions;
-}
-
-// Функция для загрузки заявок (в продакшене из БД)
-function loadSubmissions() {
-  // В продакшене: загрузка из базы данных
-  // Пока используем in-memory хранилище
-  return submissions.filter(s => s.status === 'pending');
-}
+import { getPendingSubmissions } from './storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -56,8 +38,12 @@ export default async function handler(req, res) {
     }
 
     // Загружаем заявки на модерацию
-    // В продакшене: загрузка из базы данных
-    const pendingSubmissions = loadSubmissions();
+    const pendingSubmissions = getPendingSubmissions();
+    
+    console.log('📋 Loading pending submissions:', {
+      count: pendingSubmissions.length,
+      ids: pendingSubmissions.map(s => s.id),
+    });
 
     return res.status(200).json({
       submissions: pendingSubmissions,
@@ -70,32 +56,5 @@ export default async function handler(req, res) {
 }
 
 // Экспортируем функции для доступа из других модулей
-// В Vercel Serverless Functions используем глобальный объект для хранения
-if (typeof global !== 'undefined') {
-  global.moderationStorage = global.moderationStorage || { submissions: [] };
-  submissions = global.moderationStorage.submissions;
-}
-
-export function addSubmission(submission) {
-  submissions.push(submission);
-  if (typeof global !== 'undefined' && global.moderationStorage) {
-    global.moderationStorage.submissions = submissions;
-  }
-}
-
-export function getSubmissionById(id) {
-  return submissions.find(s => s.id === id);
-}
-
-export function updateSubmission(id, updates) {
-  const index = submissions.findIndex(s => s.id === id);
-  if (index !== -1) {
-    submissions[index] = { ...submissions[index], ...updates };
-    if (typeof global !== 'undefined' && global.moderationStorage) {
-      global.moderationStorage.submissions = submissions;
-    }
-    return submissions[index];
-  }
-  return null;
-}
+export { addSubmission, getSubmissionById, updateSubmission } from './storage.js';
 

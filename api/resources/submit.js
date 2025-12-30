@@ -1,6 +1,6 @@
 // API endpoint для отправки ресурса на модерацию
 // Vercel Serverless Function
-import { addSubmission } from '../moderation/pending.js';
+import { addSubmission } from '../moderation/storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -133,7 +133,17 @@ export default async function handler(req, res) {
     };
 
     // Сохраняем заявку в систему модерации
-    addSubmission(submission);
+    try {
+      const savedSubmission = addSubmission(submission);
+      console.log('✅ Submission saved:', {
+        id: savedSubmission.id,
+        title: savedSubmission.title,
+        status: savedSubmission.status,
+      });
+    } catch (error) {
+      console.error('❌ Error saving submission:', error);
+      // Продолжаем выполнение, даже если сохранение не удалось
+    }
 
     return res.status(200).json({ 
       message: 'Заявка отправлена на модерацию',
