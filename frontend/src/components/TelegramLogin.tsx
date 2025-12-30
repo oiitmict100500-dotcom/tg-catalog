@@ -50,8 +50,11 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
     // Очищаем контейнер перед добавлением скрипта
     container.innerHTML = '';
     
+    // Добавляем уникальный параметр для предотвращения кэширования
+    const timestamp = Date.now();
+    
     const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.src = `https://telegram.org/js/telegram-widget.js?22&t=${timestamp}`;
     script.setAttribute('data-telegram-login', botName);
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
@@ -247,7 +250,13 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
     };
 
     return () => {
+      // Очищаем обработчик при размонтировании
       window.onTelegramAuth = undefined;
+      // Очищаем контейнер
+      const container = document.getElementById('telegram-login-container');
+      if (container) {
+        container.innerHTML = '';
+      }
     };
   }, [botName, onAuth]);
 
