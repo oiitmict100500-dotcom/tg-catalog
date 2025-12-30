@@ -18,7 +18,7 @@
 
 5. BotFather подтвердит настройку
 
-## Шаг 2: Настройка VITE_API_URL в Frontend (Vercel)
+## Шаг 2: Настройка токена бота в Backend
 
 ### Что такое VITE_API_URL?
 
@@ -130,7 +130,7 @@ https://tg-catalog-backend.railway.app/  ← лишний слеш в конце
 4. НЕ должно быть ошибки: "VITE_API_URL указывает на frontend домен!"
 5. Если ошибка есть — значит вы указали frontend URL вместо backend URL
 
-## Шаг 3: Настройка токена в Backend
+## Шаг 4: Проверка настройки
 
 ### Для локальной разработки:
 
