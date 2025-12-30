@@ -73,37 +73,54 @@ function Header() {
 
   const checkAuth = async () => {
     try {
+      console.log('🔍 checkAuth: Starting authentication check...');
+      
       // Сначала проверяем localStorage для быстрого отображения
       const savedUser = localStorage.getItem('user');
       const savedToken = localStorage.getItem('token');
+      
+      console.log('🔍 checkAuth: localStorage check:', {
+        hasUser: !!savedUser,
+        hasToken: !!savedToken,
+        userData: savedUser ? JSON.parse(savedUser) : null,
+      });
       
       if (savedUser && savedToken) {
         try {
           const userData = JSON.parse(savedUser);
           // Проверяем, что данные валидные
           if (userData && userData.id) {
+            console.log('✅ checkAuth: Valid user found in localStorage, setting user state');
             setUser(userData);
-            // Проверяем через API для актуальных данных (в фоне)
+            
+            // Проверяем через API для актуальных данных (в фоне, не блокируем UI)
             if (authService.isAuthenticated()) {
+              console.log('🔍 checkAuth: Token exists, checking API...');
               try {
                 const currentUser = await authService.getCurrentUser();
                 if (currentUser) {
+                  console.log('✅ checkAuth: API returned user, updating state');
                   setUser(currentUser);
                   authService.setUser(currentUser); // Обновляем localStorage
                 } else {
                   // Если API вернул null, но токен есть - возможно токен невалидный
                   // Оставляем пользователя из localStorage, но логируем предупреждение
-                  console.warn('⚠️ API не вернул пользователя, используем данные из localStorage');
+                  console.warn('⚠️ checkAuth: API не вернул пользователя, используем данные из localStorage');
+                  // НЕ очищаем - оставляем пользователя из localStorage
                 }
-              } catch (apiError) {
+              } catch (apiError: any) {
                 // Если ошибка API, но есть данные в localStorage - используем их
-                console.warn('⚠️ Ошибка проверки через API, используем данные из localStorage:', apiError);
+                console.warn('⚠️ checkAuth: Ошибка проверки через API, используем данные из localStorage:', apiError?.message || apiError);
+                // НЕ очищаем - оставляем пользователя из localStorage
               }
             }
+            console.log('✅ checkAuth: User authenticated from localStorage');
             return; // Выходим, если пользователь найден
+          } else {
+            console.warn('⚠️ checkAuth: Invalid user data in localStorage');
           }
         } catch (e) {
-          console.error('Error parsing saved user:', e);
+          console.error('❌ checkAuth: Error parsing saved user:', e);
           // Очищаем поврежденные данные
           localStorage.removeItem('user');
           localStorage.removeItem('token');
@@ -111,29 +128,35 @@ function Header() {
       }
 
       // Если нет сохраненных данных, проверяем через API
+      console.log('🔍 checkAuth: No valid localStorage data, checking API...');
       if (authService.isAuthenticated()) {
         try {
           const currentUser = await authService.getCurrentUser();
           if (currentUser) {
+            console.log('✅ checkAuth: API returned user');
             setUser(currentUser);
             authService.setUser(currentUser);
           } else {
             // Если API вернул null, очищаем состояние
+            console.warn('⚠️ checkAuth: API returned null, clearing auth');
             authService.logout();
             setUser(null);
           }
-        } catch (apiError) {
-          console.error('Error getting current user from API:', apiError);
-          authService.logout();
-          setUser(null);
+        } catch (apiError: any) {
+          console.error('❌ checkAuth: Error getting current user from API:', apiError?.message || apiError);
+          // Не очищаем сразу - возможно временная ошибка сети
+          // authService.logout();
+          // setUser(null);
         }
       } else {
+        console.log('🔍 checkAuth: No token found, user is not authenticated');
         setUser(null);
       }
     } catch (error) {
-      console.error('Error checking auth:', error);
-      authService.logout();
-      setUser(null);
+      console.error('❌ checkAuth: Unexpected error:', error);
+      // Не очищаем при неожиданной ошибке
+      // authService.logout();
+      // setUser(null);
     }
   };
 

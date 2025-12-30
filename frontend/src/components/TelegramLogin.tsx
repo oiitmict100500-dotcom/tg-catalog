@@ -206,35 +206,54 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
         const data = await response.json();
         console.log('✅ Auth successful, response data:', data);
         console.log('✅ User:', data.user?.username || data.user?.email || data.user?.id);
+        console.log('✅ Token received:', data.token ? 'Yes' : 'No');
         
-        // Сохраняем токен
-        if (data.token) {
-          authService.setToken(data.token);
-          console.log('✅ Token saved to localStorage');
-        } else {
-          console.warn('⚠️ No token in response');
+        // Проверяем, что данные полные
+        if (!data.token) {
+          console.error('❌ No token in response!');
           throw new Error('Токен не получен от сервера');
         }
-
+        
+        if (!data.user || !data.user.id) {
+          console.error('❌ No user data in response!');
+          throw new Error('Данные пользователя не получены от сервера');
+        }
+        
+        // Сохраняем токен
+        authService.setToken(data.token);
+        console.log('✅ Token saved to localStorage');
+        
+        // Проверяем, что токен сохранился
+        const savedToken = localStorage.getItem('token');
+        console.log('✅ Token verification:', savedToken ? 'Saved successfully' : 'NOT SAVED!');
+        
         // Сохраняем пользователя
-        if (data.user) {
-          authService.setUser(data.user);
-          console.log('✅ User saved to localStorage');
+        authService.setUser(data.user);
+        console.log('✅ User saved to localStorage');
+        
+        // Проверяем, что пользователь сохранился
+        const savedUser = localStorage.getItem('user');
+        console.log('✅ User verification:', savedUser ? 'Saved successfully' : 'NOT SAVED!');
+        if (savedUser) {
+          console.log('✅ Saved user data:', JSON.parse(savedUser));
         }
 
         // Вызываем callback если есть
         if (onAuth) {
+          console.log('✅ Calling onAuth callback');
           onAuth(data.user);
         }
 
         // Отправляем событие об изменении авторизации
+        console.log('✅ Dispatching authChange event');
         window.dispatchEvent(new Event('authChange'));
         
         // Перезагружаем страницу для обновления состояния
-        console.log('🔄 Reloading page after successful auth...');
+        console.log('🔄 Reloading page after successful auth in 1 second...');
         setTimeout(() => {
+          console.log('🔄 Reloading now...');
           window.location.reload();
-        }, 500);
+        }, 1000);
       } catch (error: any) {
         console.error('❌ Ошибка авторизации через Telegram:', error);
         
