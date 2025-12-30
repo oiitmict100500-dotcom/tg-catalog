@@ -1,6 +1,6 @@
 // API endpoint для получения заявок на модерацию
 // Vercel Serverless Function
-import { getPendingSubmissions } from './storage.js';
+import { getPendingSubmissions, loadSubmissions, getStorageInfo } from './shared-storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -37,39 +37,39 @@ export default async function handler(req, res) {
       return res.status(403).json({ message: 'Доступ запрещен. Требуются права администратора' });
     }
 
+    // Получаем информацию о хранилище
+    const storageInfo = getStorageInfo();
+    console.log('📊 Storage info:', storageInfo);
+    
+    // Загружаем все заявки
+    const allSubmissions = loadSubmissions();
+    console.log('📋 All submissions:', {
+      total: allSubmissions.length,
+      ids: allSubmissions.map(s => s.id),
+      titles: allSubmissions.map(s => s.title),
+      statuses: allSubmissions.map(s => s.status),
+    });
+    
     // Загружаем заявки на модерацию
     const pendingSubmissions = getPendingSubmissions();
     
-    // Загружаем все заявки для диагностики
-    const { loadSubmissions } = await import('./storage.js');
-    const allSubmissions = loadSubmissions();
-    
-    console.log('📋 Loading pending submissions:', {
+    console.log('📋 Pending submissions result:', {
       count: pendingSubmissions.length,
       ids: pendingSubmissions.map(s => s.id),
       titles: pendingSubmissions.map(s => s.title),
     });
     
-    console.log('📊 All submissions in storage:', {
-      total: allSubmissions.length,
-      byStatus: {
-        pending: allSubmissions.filter(s => s.status === 'pending').length,
-        approved: allSubmissions.filter(s => s.status === 'approved').length,
-        rejected: allSubmissions.filter(s => s.status === 'rejected').length,
-      },
-      allIds: allSubmissions.map(s => s.id),
-      hasGlobalStorage: typeof global !== 'undefined' && !!global.moderationStorage,
-      globalStorageCount: typeof global !== 'undefined' && global.moderationStorage ? global.moderationStorage.submissions?.length : 0,
-    });
-    
     // Если заявок нет, логируем для отладки
-    if (pendingSubmissions.length === 0) {
-      console.log('⚠️ No pending submissions found');
-      console.log('💡 This might be because:');
-      console.log('   1. Submissions are saved on a different Vercel instance');
-      console.log('   2. Storage is not persisting between function calls');
-      console.log('   3. Submissions were not saved correctly');
+    if (pendingSubmissions.length === 0 && allSubmissions.length === 0) {
+      console.log('⚠️ No submissions found in storage at all');
+      console.log('💡 This means:');
+      console.log('   1. Either no submissions have been saved yet');
+      console.log('   2. Or submissions are saved on a different Vercel instance');
+      console.log('   3. Or storage is not persisting between function calls');
       console.log('💡 Solution: Use a database (PostgreSQL, MongoDB) or external storage service');
+    } else if (pendingSubmissions.length === 0 && allSubmissions.length > 0) {
+      console.log('⚠️ Submissions exist but none are pending');
+      console.log('💡 All submissions have been processed (approved/rejected)');
     }
 
     return res.status(200).json({
@@ -83,5 +83,5 @@ export default async function handler(req, res) {
 }
 
 // Экспортируем функции для доступа из других модулей
-export { addSubmission, getSubmissionById, updateSubmission } from './storage.js';
+export { addSubmission, getSubmissionById, updateSubmission } from './shared-storage.js';
 

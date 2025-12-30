@@ -1,6 +1,6 @@
 // API endpoint для отправки ресурса на модерацию
 // Vercel Serverless Function
-import { addSubmission } from '../moderation/storage.js';
+import { addSubmission, getStorageInfo } from '../moderation/shared-storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -133,15 +133,36 @@ export default async function handler(req, res) {
     };
 
     // Сохраняем заявку в систему модерации
+    console.log('💾 Attempting to save submission:', {
+      id: submission.id,
+      title: submission.title,
+      storageInfo: getStorageInfo(),
+    });
+    
     try {
       const savedSubmission = addSubmission(submission);
-      console.log('✅ Submission saved:', {
+      
+      // Проверяем, что заявка действительно сохранилась
+      const { getPendingSubmissions } = await import('../moderation/shared-storage.js');
+      const pendingAfterSave = getPendingSubmissions();
+      const found = pendingAfterSave.find(s => s.id === submission.id);
+      
+      console.log('✅ Submission save result:', {
         id: savedSubmission.id,
         title: savedSubmission.title,
         status: savedSubmission.status,
+        foundInPending: !!found,
+        totalPending: pendingAfterSave.length,
+        storageInfo: getStorageInfo(),
       });
+      
+      if (!found) {
+        console.error('❌ WARNING: Submission was saved but not found in pending list!');
+        console.error('This indicates a storage synchronization issue.');
+      }
     } catch (error) {
       console.error('❌ Error saving submission:', error);
+      console.error('Error stack:', error.stack);
       // Продолжаем выполнение, даже если сохранение не удалось
     }
 
