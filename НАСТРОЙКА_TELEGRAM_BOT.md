@@ -18,7 +18,43 @@
 
 5. BotFather подтвердит настройку
 
-## Шаг 2: Настройка токена в Backend
+## Шаг 2: Настройка VITE_API_URL в Frontend (Vercel)
+
+⚠️ **КРИТИЧЕСКИ ВАЖНО:** `VITE_API_URL` должен указывать на ваш **BACKEND** сервер, а не на frontend!
+
+### Где развернут ваш Backend?
+
+Если backend развернут на:
+- **Railway**: `https://ваш-проект.railway.app`
+- **Render**: `https://ваш-проект.onrender.com`
+- **Heroku**: `https://ваш-проект.herokuapp.com`
+- **Vercel**: `https://ваш-backend.vercel.app` (если backend тоже на Vercel)
+- **Другой хостинг**: URL вашего backend сервера
+
+### Настройка в Vercel:
+
+1. Откройте проект frontend в Vercel
+2. Перейдите в **Settings → Environment Variables**
+3. Найдите или добавьте переменную:
+   - **Name:** `VITE_API_URL`
+   - **Value:** `https://ваш-backend-url.com` (БЕЗ слеша в конце!)
+   - **Environment:** Production, Preview, Development (выберите все)
+4. ⚠️ **Удалите** неправильное значение, если там указан frontend домен!
+5. Сохраните и перезапустите deployment
+
+### Пример правильных значений:
+
+✅ **Правильно:**
+- `https://tg-catalog-backend.railway.app`
+- `https://tg-catalog-api.onrender.com`
+- `https://api.yourdomain.com`
+
+❌ **Неправильно:**
+- `tg-catalog-one.vercel.app` (это frontend!)
+- `https://tg-catalog-one.vercel.app` (это frontend!)
+- Любой URL, который ведет на frontend
+
+## Шаг 3: Настройка токена в Backend
 
 ### Для локальной разработки:
 
@@ -45,7 +81,7 @@ TELEGRAM_BOT_TOKEN=8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM
    - **Environment:** Production, Preview, Development (выберите все)
 4. Сохраните и перезапустите deployment
 
-## Шаг 3: Проверка настройки
+## Шаг 4: Проверка настройки
 
 1. Откройте сайт: https://tg-catalog-one.vercel.app
 2. Нажмите на кнопку "Войти через Telegram"
@@ -66,11 +102,19 @@ TELEGRAM_BOT_TOKEN=8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM
 - Проверьте, что домен не содержит `https://` или слеш в конце
 - Перезапустите сайт после настройки домена
 
+### Ошибка "VITE_API_URL указывает на frontend домен"
+
+- ⚠️ **Это критическая ошибка!** VITE_API_URL должен указывать на backend, а не на frontend
+- Удалите неправильное значение в Vercel Environment Variables
+- Установите правильный URL вашего backend сервера
+- Перезапустите deployment после изменения
+
 ### Ошибка "Telegram bot token не настроен"
 
 - Проверьте, что переменная `TELEGRAM_BOT_TOKEN` установлена в backend
 - Убедитесь, что токен правильный (скопирован полностью)
 - Перезапустите backend после добавления переменной
+- Проверьте, что backend развернут и доступен по URL, указанному в VITE_API_URL
 
 ### Ошибка авторизации (401)
 
