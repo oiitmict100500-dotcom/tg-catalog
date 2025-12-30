@@ -51,6 +51,10 @@
   color: var(--tg-color-text);
 }
 
+[data-theme="dark"] .form-group label {
+  color: #ffffff !important;
+}
+
 .form-group input,
 .form-group textarea,
 .form-group select {
