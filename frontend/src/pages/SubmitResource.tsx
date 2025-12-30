@@ -23,13 +23,11 @@ function SubmitResource() {
     telegramUsername: '',
     categoryId: '',
     subcategoryId: '',
-    coverImage: '',
     coverImageFile: null as File | null,
     isPrivate: false,
   });
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [useImageFile, setUseImageFile] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -113,11 +111,16 @@ function SubmitResource() {
     
     // Для каналов, групп и ботов
     if (['channel', 'group', 'bot'].includes(categoryType || '')) {
-      if (!formData.isPrivate && !formData.telegramUsername.trim()) {
-        newErrors.telegramUsername = 'Укажите username (без @) или отметьте "Приватный ресурс"';
-      }
-      if (formData.isPrivate && !formData.telegramLink.trim()) {
-        newErrors.telegramLink = 'Для приватного ресурса укажите ссылку';
+      if (!formData.isPrivate) {
+        // Если не приватный - username обязателен
+        if (!formData.telegramUsername.trim()) {
+          newErrors.telegramUsername = 'Укажите username (без @)';
+        }
+      } else {
+        // Если приватный - ссылка обязательна
+        if (!formData.telegramLink.trim()) {
+          newErrors.telegramLink = 'Для приватного ресурса укажите ссылку';
+        }
       }
     }
     
@@ -128,9 +131,9 @@ function SubmitResource() {
       }
     }
 
-    // Проверка обложки
-    if (!formData.coverImage.trim() && !formData.coverImageFile) {
-      newErrors.coverImage = 'Загрузите обложку или укажите ссылку на изображение';
+    // Проверка обложки - только файл
+    if (!formData.coverImageFile) {
+      newErrors.coverImage = 'Загрузите обложку (файл изображения)';
     }
 
     setErrors(newErrors);
@@ -141,12 +144,16 @@ function SubmitResource() {
     e.preventDefault();
     
     // Валидация формы
-    if (!validateForm()) {
-      // Прокручиваем к первой ошибке
-      const firstErrorField = document.querySelector('.field-error');
-      if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    const isValid = validateForm();
+    
+    if (!isValid) {
+      // Прокручиваем к первой ошибке после обновления состояния
+      setTimeout(() => {
+        const firstErrorField = document.querySelector('.field-error');
+        if (firstErrorField) {
+          firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       return;
     }
 
@@ -167,9 +174,6 @@ function SubmitResource() {
       }
       if (formData.telegramUsername) {
         submitData.append('telegramUsername', formData.telegramUsername);
-      }
-      if (formData.coverImage) {
-        submitData.append('coverImage', formData.coverImage);
       }
       if (formData.coverImageFile) {
         submitData.append('coverImageFile', formData.coverImageFile);
@@ -193,15 +197,6 @@ function SubmitResource() {
 
   const isPackType = ['sticker', 'emoji'].includes(selectedCategory?.type || '');
   const isChannelGroupBot = ['channel', 'group', 'bot'].includes(selectedCategory?.type || '');
-  
-  // Отладочная информация
-  console.log('Form state:', {
-    selectedCategory: selectedCategory?.name,
-    categoryType: selectedCategory?.type,
-    isChannelGroupBot,
-    isPackType,
-    isPrivate: formData.isPrivate,
-  });
 
   return (
     <div className="submit-resource">
@@ -384,76 +379,26 @@ function SubmitResource() {
 
         <div className={`form-group ${errors.coverImage ? 'field-error' : ''}`}>
           <label>Обложка *</label>
-          <div className="image-upload-options">
-            <div className="upload-option-tabs">
-              <button
-                type="button"
-                className={!useImageFile ? 'active' : ''}
-                onClick={() => {
-                  setUseImageFile(false);
-                  setFormData(prev => ({ ...prev, coverImageFile: null }));
-                  setImagePreview(null);
-                  if (errors.coverImage && formData.coverImage) {
-                    setErrors(prev => ({ ...prev, coverImage: '' }));
-                  }
-                }}
-              >
-                Ссылка
-              </button>
-              <button
-                type="button"
-                className={useImageFile ? 'active' : ''}
-                onClick={() => {
-                  setUseImageFile(true);
-                  setFormData(prev => ({ ...prev, coverImage: '' }));
-                  if (errors.coverImage && formData.coverImageFile) {
-                    setErrors(prev => ({ ...prev, coverImage: '' }));
-                  }
-                }}
-              >
-                Загрузить файл
-              </button>
-            </div>
-
-            {!useImageFile ? (
-              <>
-                <input
-                  type="url"
-                  value={formData.coverImage}
-                  onChange={(e) => {
-                    setFormData({ ...formData, coverImage: e.target.value });
-                    if (errors.coverImage) {
-                      setErrors(prev => ({ ...prev, coverImage: '' }));
-                    }
-                  }}
-                  placeholder="https://example.com/image.jpg"
-                  required={!formData.coverImageFile}
-                  className={errors.coverImage ? 'error' : ''}
-                />
-                {errors.coverImage && <span className="error-message">{errors.coverImage}</span>}
-              </>
-            ) : (
-              <div className="file-upload">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    handleImageFileChange(e);
-                    if (errors.coverImage) {
-                      setErrors(prev => ({ ...prev, coverImage: '' }));
-                    }
-                  }}
-                  required={!formData.coverImage}
-                  className={errors.coverImage ? 'error' : ''}
-                />
-                {imagePreview && (
-                  <div className="image-preview">
-                    <img src={imagePreview} alt="Preview" />
-                  </div>
-                )}
-                {errors.coverImage && <span className="error-message">{errors.coverImage}</span>}
+          <div className="file-upload">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                handleImageFileChange(e);
+                if (errors.coverImage) {
+                  setErrors(prev => ({ ...prev, coverImage: '' }));
+                }
+              }}
+              required
+              className={errors.coverImage ? 'error' : ''}
+            />
+            {imagePreview && (
+              <div className="image-preview">
+                <img src={imagePreview} alt="Preview" />
               </div>
             )}
+            {errors.coverImage && <span className="error-message">{errors.coverImage}</span>}
+            <small>Выберите файл изображения (макс. 5MB)</small>
           </div>
         </div>
 
