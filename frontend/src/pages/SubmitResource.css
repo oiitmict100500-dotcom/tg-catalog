@@ -234,7 +234,13 @@
 .field-error textarea,
 .field-error select {
   border-color: #dc3545 !important;
-  background-color: rgba(220, 53, 69, 0.05);
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+[data-theme="dark"] .field-error input,
+[data-theme="dark"] .field-error textarea,
+[data-theme="dark"] .field-error select {
+  background-color: rgba(220, 53, 69, 0.15);
 }
 
 .field-error input:focus,
@@ -251,6 +257,10 @@
   margin-top: 6px;
   font-weight: 500;
   animation: fadeIn 0.3s;
+}
+
+[data-theme="dark"] .error-message {
+  color: #ff6b6b;
 }
 
 .error-message::before {

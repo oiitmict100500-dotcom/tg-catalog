@@ -88,7 +88,7 @@ function SubmitResource() {
     const newErrors: Record<string, string> = {};
 
     // Валидация названия
-    if (!formData.title.trim()) {
+    if (!formData.title || !formData.title.trim()) {
       newErrors.title = 'Заполните название';
     }
 
@@ -103,7 +103,7 @@ function SubmitResource() {
     }
 
     // Валидация описания
-    if (!formData.description.trim()) {
+    if (!formData.description || !formData.description.trim()) {
       newErrors.description = 'Заполните описание';
     }
 
@@ -113,12 +113,12 @@ function SubmitResource() {
     if (['channel', 'group', 'bot'].includes(categoryType || '')) {
       if (!formData.isPrivate) {
         // Если не приватный - username обязателен
-        if (!formData.telegramUsername.trim()) {
+        if (!formData.telegramUsername || !formData.telegramUsername.trim()) {
           newErrors.telegramUsername = 'Укажите username (без @)';
         }
       } else {
         // Если приватный - ссылка обязательна
-        if (!formData.telegramLink.trim()) {
+        if (!formData.telegramLink || !formData.telegramLink.trim()) {
           newErrors.telegramLink = 'Для приватного ресурса укажите ссылку';
         }
       }
@@ -126,7 +126,7 @@ function SubmitResource() {
     
     // Для паков (стикеры, эмодзи)
     if (['sticker', 'emoji'].includes(categoryType || '')) {
-      if (!formData.telegramLink.trim()) {
+      if (!formData.telegramLink || !formData.telegramLink.trim()) {
         newErrors.telegramLink = 'Укажите ссылку на стикерпак или эмодзипак';
       }
     }
@@ -135,6 +135,13 @@ function SubmitResource() {
     if (!formData.coverImageFile) {
       newErrors.coverImage = 'Загрузите обложку (файл изображения)';
     }
+
+    console.log('Validation:', {
+      formData,
+      categoryType,
+      errors: newErrors,
+      hasErrors: Object.keys(newErrors).length > 0
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -152,8 +159,14 @@ function SubmitResource() {
         const firstErrorField = document.querySelector('.field-error');
         if (firstErrorField) {
           firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // Если не нашли по классу, ищем по data-атрибуту
+          const firstError = document.querySelector('[data-error="true"]');
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
         }
-      }, 100);
+      }, 200);
       return;
     }
 
@@ -210,7 +223,7 @@ function SubmitResource() {
       </p>
 
       <form onSubmit={handleSubmit} className="submit-form">
-        <div className={`form-group ${errors.categoryId ? 'field-error' : ''}`}>
+        <div className={`form-group ${errors.categoryId ? 'field-error' : ''}`} data-error={errors.categoryId ? 'true' : undefined}>
           <label>Категория *</label>
           <select
             value={formData.categoryId}
