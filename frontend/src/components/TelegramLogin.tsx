@@ -66,7 +66,8 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
           console.warn('⚠️ Widget iframe not found. This might indicate "Bot domain invalid" error.');
           console.warn('💡 Check BotFather: /setdomain -> tg_catalog_bot ->', currentDomain);
           console.warn('💡 Make sure to set domain WITHOUT https:// and WITHOUT trailing slash');
-          console.warn('💡 Example: vercel-deployment.vercel.app');
+          console.warn('💡 Current domain:', currentDomain);
+          console.warn('💡 Set this exact domain in BotFather:', currentDomain);
         }
       }, 2000);
     };
