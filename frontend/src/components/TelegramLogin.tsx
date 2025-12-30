@@ -54,19 +54,21 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
       console.log('📋 Configuration:', {
         botName,
         currentDomain,
-        expectedDomain: 'hypercarnally-biparty-kristian.ngrok-free.dev',
+        fullUrl: window.location.href,
       });
       
       // Проверяем через небольшую задержку, появился ли виджет
       setTimeout(() => {
-        const widget = container.querySelector('iframe, script');
+        const widget = container.querySelector('iframe');
         if (widget) {
-          console.log('✅ Widget element found in container');
+          console.log('✅ Widget iframe found in container');
         } else {
-          console.warn('⚠️ Widget element not found. This might indicate "Bot domain invalid" error.');
+          console.warn('⚠️ Widget iframe not found. This might indicate "Bot domain invalid" error.');
           console.warn('💡 Check BotFather: /setdomain -> tg_catalog_bot ->', currentDomain);
+          console.warn('💡 Make sure to set domain WITHOUT https:// and WITHOUT trailing slash');
+          console.warn('💡 Example: vercel-deployment.vercel.app');
         }
-      }, 1000);
+      }, 2000);
     };
     
     container.appendChild(script);
@@ -101,6 +103,8 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
           requestBody.photo_url = telegramUser.photo_url;
         }
 
+        console.log('📤 Sending auth request to /api/auth/telegram');
+        
         const response = await fetch('/api/auth/telegram', {
           method: 'POST',
           headers: {
@@ -109,10 +113,23 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
           body: JSON.stringify(requestBody),
         });
 
+        console.log('📥 Auth response status:', response.status);
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: 'Неизвестная ошибка' }));
-          console.error('Auth error response:', errorData);
-          throw new Error(errorData.message || 'Ошибка авторизации');
+          console.error('❌ Auth error response:', errorData);
+          
+          // Более понятные сообщения об ошибках
+          let errorMessage = errorData.message || 'Ошибка авторизации';
+          if (response.status === 404) {
+            errorMessage = 'Backend API не найден. Убедитесь, что backend запущен.';
+          } else if (response.status === 500) {
+            errorMessage = 'Ошибка сервера. Проверьте логи backend.';
+          } else if (response.status === 0 || response.status === 503) {
+            errorMessage = 'Не удалось подключиться к серверу. Проверьте, что backend запущен.';
+          }
+          
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
