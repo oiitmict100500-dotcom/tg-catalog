@@ -1,0 +1,151 @@
+import { useEffect } from 'react';
+import authService from '../services/auth.service';
+import './TelegramLogin.css';
+
+declare global {
+  interface Window {
+    onTelegramAuth?: (user: any) => void;
+  }
+}
+
+interface TelegramLoginProps {
+  onAuth?: (user: any) => void;
+  botName: string;
+}
+
+function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
+  useEffect(() => {
+    // Получаем текущий домен для проверки
+    const currentDomain = window.location.hostname;
+    
+    console.log('🔍 TelegramLogin: Initializing...', {
+      botName,
+      currentDomain,
+      fullUrl: window.location.href,
+    });
+    
+    // Загружаем скрипт Telegram Login Widget
+    const container = document.getElementById('telegram-login-container');
+    if (!container) {
+      console.error('❌ Telegram login container not found!');
+      return;
+    }
+
+    console.log('✅ Container found, clearing and adding script...');
+
+    // Очищаем контейнер перед добавлением скрипта
+    container.innerHTML = '';
+    
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.setAttribute('data-telegram-login', botName);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
+    script.async = true;
+    
+    script.onerror = (error) => {
+      console.error('❌ Failed to load Telegram Login Widget script:', error);
+      console.error('Check if domain is set in BotFather:', currentDomain);
+    };
+    
+    script.onload = () => {
+      console.log('✅ Telegram Login Widget script loaded successfully');
+      console.log('📋 Configuration:', {
+        botName,
+        currentDomain,
+        expectedDomain: 'hypercarnally-biparty-kristian.ngrok-free.dev',
+      });
+      
+      // Проверяем через небольшую задержку, появился ли виджет
+      setTimeout(() => {
+        const widget = container.querySelector('iframe, script');
+        if (widget) {
+          console.log('✅ Widget element found in container');
+        } else {
+          console.warn('⚠️ Widget element not found. This might indicate "Bot domain invalid" error.');
+          console.warn('💡 Check BotFather: /setdomain -> tg_catalog_bot ->', currentDomain);
+        }
+      }, 1000);
+    };
+    
+    container.appendChild(script);
+    
+    console.log('📤 Script appended to container');
+
+    // Обработчик авторизации Telegram
+    window.onTelegramAuth = async (telegramUser: any) => {
+      try {
+        console.log('Telegram auth callback received:', {
+          id: telegramUser.id,
+          username: telegramUser.username,
+          hasHash: !!telegramUser.hash,
+        });
+
+        // Формируем тело запроса, исключая пустые поля
+        const requestBody: any = {
+          id: telegramUser.id,
+          first_name: telegramUser.first_name,
+          auth_date: telegramUser.auth_date,
+          hash: telegramUser.hash,
+        };
+
+        // Добавляем опциональные поля только если они не пустые
+        if (telegramUser.last_name) {
+          requestBody.last_name = telegramUser.last_name;
+        }
+        if (telegramUser.username) {
+          requestBody.username = telegramUser.username;
+        }
+        if (telegramUser.photo_url) {
+          requestBody.photo_url = telegramUser.photo_url;
+        }
+
+        const response = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Неизвестная ошибка' }));
+          console.error('Auth error response:', errorData);
+          throw new Error(errorData.message || 'Ошибка авторизации');
+        }
+
+        const data = await response.json();
+        
+        // Сохраняем токен
+        if (data.token) {
+          authService.setToken(data.token);
+          window.dispatchEvent(new Event('authChange'));
+        }
+
+        if (onAuth) {
+          onAuth(data.user);
+        }
+        
+        // Перезагружаем страницу для обновления состояния
+        window.location.reload();
+      } catch (error: any) {
+        console.error('Ошибка авторизации через Telegram:', error);
+        const errorMessage = error.message || 'Ошибка авторизации. Попробуйте еще раз.';
+        alert(errorMessage);
+      }
+    };
+
+    return () => {
+      window.onTelegramAuth = undefined;
+    };
+  }, [botName, onAuth]);
+
+  return (
+    <div className="telegram-login-wrapper">
+      <div id="telegram-login-container"></div>
+    </div>
+  );
+}
+
+export default TelegramLogin;

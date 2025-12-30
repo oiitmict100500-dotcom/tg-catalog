@@ -1,0 +1,151 @@
+.my-resources-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.my-resources-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.my-resources-header h1 {
+  color: var(--tg-color-text);
+  font-size: 2rem;
+}
+
+.resources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.resource-item {
+  background: var(--tg-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px var(--tg-card-shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.resource-item-content {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+}
+
+.resource-item-image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.resource-item-info {
+  flex: 1;
+}
+
+.resource-item-info h3 {
+  margin: 0 0 10px 0;
+  color: var(--tg-color-text);
+  font-size: 1.3rem;
+}
+
+.resource-item-info p {
+  color: var(--tg-color-text-secondary);
+  margin: 0 0 15px 0;
+  line-height: 1.5;
+}
+
+.resource-item-meta {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.resource-status {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: var(--tg-bg-secondary);
+  color: var(--tg-color-text);
+}
+
+.resource-category {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--tg-color-primary);
+  color: white;
+  opacity: 0.8;
+}
+
+.resource-item-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-view {
+  padding: 10px 20px;
+  background: var(--tg-button-primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.btn-view:hover {
+  background: var(--tg-button-primary-hover);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: var(--tg-card-bg);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px var(--tg-card-shadow);
+}
+
+.empty-state h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  color: var(--tg-color-text);
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  color: var(--tg-color-text-secondary);
+  margin-bottom: 30px;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 12px 24px;
+  background: var(--tg-button-primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--tg-button-primary-hover);
+  transform: translateY(-2px);
+}
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  font-size: 1.2rem;
+  color: var(--tg-color-text-secondary);
+}
+
