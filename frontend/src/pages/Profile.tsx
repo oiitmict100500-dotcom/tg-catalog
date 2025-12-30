@@ -12,7 +12,6 @@ function Profile() {
     avatar: '',
     bio: '',
   });
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -55,7 +54,7 @@ function Profile() {
     }
   };
 
-  if (loading || !user) {
+  if (!user) {
     return <div className="loading">Загрузка...</div>;
   }
 
