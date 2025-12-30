@@ -180,6 +180,15 @@ function SubmitResource() {
 
   const isPackType = ['sticker', 'emoji'].includes(selectedCategory?.type || '');
   const isChannelGroupBot = ['channel', 'group', 'bot'].includes(selectedCategory?.type || '');
+  
+  // Отладочная информация
+  console.log('Form state:', {
+    selectedCategory: selectedCategory?.name,
+    categoryType: selectedCategory?.type,
+    isChannelGroupBot,
+    isPackType,
+    isPrivate: formData.isPrivate,
+  });
 
   return (
     <div className="submit-resource">
@@ -266,6 +275,24 @@ function SubmitResource() {
         {/* Для каналов, групп, ботов - username или ссылка (если приватный) */}
         {isChannelGroupBot && (
           <>
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.isPrivate}
+                  onChange={(e) => {
+                    const isPrivate = e.target.checked;
+                    setFormData({ 
+                      ...formData, 
+                      isPrivate: isPrivate,
+                      telegramUsername: isPrivate ? '' : formData.telegramUsername,
+                      telegramLink: isPrivate ? formData.telegramLink : ''
+                    });
+                  }}
+                />
+                <span>Приватный ресурс (использовать ссылку вместо username)</span>
+              </label>
+            </div>
             {!formData.isPrivate ? (
               <div className="form-group">
                 <label>Username (без @) *</label>
@@ -290,16 +317,6 @@ function SubmitResource() {
                 />
               </div>
             )}
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={formData.isPrivate}
-                  onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked, telegramUsername: '', telegramLink: '' })}
-                />
-                <span>Приватный ресурс (использовать ссылку вместо username)</span>
-              </label>
-            </div>
           </>
         )}
 
