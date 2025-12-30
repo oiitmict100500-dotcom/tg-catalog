@@ -75,23 +75,55 @@ function Header() {
     try {
       // Сначала проверяем localStorage для быстрого отображения
       const savedUser = localStorage.getItem('user');
-      if (savedUser) {
+      const savedToken = localStorage.getItem('token');
+      
+      if (savedUser && savedToken) {
         try {
           const userData = JSON.parse(savedUser);
-          setUser(userData);
+          // Проверяем, что данные валидные
+          if (userData && userData.id) {
+            setUser(userData);
+            // Проверяем через API для актуальных данных (в фоне)
+            if (authService.isAuthenticated()) {
+              try {
+                const currentUser = await authService.getCurrentUser();
+                if (currentUser) {
+                  setUser(currentUser);
+                  authService.setUser(currentUser); // Обновляем localStorage
+                } else {
+                  // Если API вернул null, но токен есть - возможно токен невалидный
+                  // Оставляем пользователя из localStorage, но логируем предупреждение
+                  console.warn('⚠️ API не вернул пользователя, используем данные из localStorage');
+                }
+              } catch (apiError) {
+                // Если ошибка API, но есть данные в localStorage - используем их
+                console.warn('⚠️ Ошибка проверки через API, используем данные из localStorage:', apiError);
+              }
+            }
+            return; // Выходим, если пользователь найден
+          }
         } catch (e) {
           console.error('Error parsing saved user:', e);
+          // Очищаем поврежденные данные
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
         }
       }
 
-      // Затем проверяем через API для актуальных данных
+      // Если нет сохраненных данных, проверяем через API
       if (authService.isAuthenticated()) {
-        const currentUser = await authService.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          authService.setUser(currentUser); // Обновляем localStorage
-        } else {
-          // Если API вернул null, очищаем состояние
+        try {
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            authService.setUser(currentUser);
+          } else {
+            // Если API вернул null, очищаем состояние
+            authService.logout();
+            setUser(null);
+          }
+        } catch (apiError) {
+          console.error('Error getting current user from API:', apiError);
           authService.logout();
           setUser(null);
         }
