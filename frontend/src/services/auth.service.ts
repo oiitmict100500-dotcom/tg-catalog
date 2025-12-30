@@ -1,5 +1,10 @@
 import axios from 'axios';
-import { getApiEndpoint } from '../config/api.config';
+import { getApiEndpoint, API_BASE_URL } from '../config/api.config';
+
+// Настраиваем axios для использования правильного baseURL
+if (API_BASE_URL) {
+  axios.defaults.baseURL = API_BASE_URL;
+}
 
 const API_URL = getApiEndpoint('api/auth');
 
