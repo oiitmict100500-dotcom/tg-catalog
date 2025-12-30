@@ -15,6 +15,23 @@
   font-size: 1rem;
 }
 
+[data-theme="dark"] .subtitle {
+  color: #c8c8c8;
+}
+
+.subtitle a {
+  color: var(--tg-color-primary);
+  text-decoration: none;
+}
+
+[data-theme="dark"] .subtitle a {
+  color: #7bb5ff;
+}
+
+.subtitle a:hover {
+  text-decoration: underline;
+}
+
 .submit-form {
   background: var(--tg-card-bg);
   border-radius: 16px;
@@ -46,6 +63,38 @@
   background: var(--tg-input-bg);
   color: var(--tg-color-text);
   transition: border-color 0.2s;
+}
+
+/* Улучшение видимости placeholder в темном режиме */
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--tg-color-text-secondary);
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .form-group input::placeholder,
+[data-theme="dark"] .form-group textarea::placeholder {
+  color: #9a9a9a;
+  opacity: 1;
+}
+
+/* Улучшение видимости текста в select */
+.form-group select {
+  color: var(--tg-color-text);
+}
+
+[data-theme="dark"] .form-group select {
+  color: #e8e8e8;
+}
+
+.form-group select option {
+  background: var(--tg-input-bg);
+  color: var(--tg-color-text);
+}
+
+[data-theme="dark"] .form-group select option {
+  background: #2b2b2b;
+  color: #e8e8e8;
 }
 
 .form-group input:focus,
@@ -135,6 +184,11 @@
 
 .checkbox-label span {
   user-select: none;
+  color: var(--tg-color-text);
+}
+
+[data-theme="dark"] .checkbox-label span {
+  color: #e8e8e8;
 }
 
 .form-group small {
@@ -142,6 +196,10 @@
   margin-top: 4px;
   color: var(--tg-color-text-secondary);
   font-size: 0.875rem;
+}
+
+[data-theme="dark"] .form-group small {
+  color: #b8b8b8;
 }
 
 .image-upload-options {
@@ -200,6 +258,35 @@
   width: 100%;
   font-size: 1rem;
   transition: border-color 0.2s;
+  color: var(--tg-color-text);
+}
+
+[data-theme="dark"] .file-upload input[type="file"] {
+  color: #e8e8e8;
+}
+
+/* Стилизация текста в file input */
+.file-upload input[type="file"]::file-selector-button {
+  padding: 8px 16px;
+  margin-right: 12px;
+  border: 1px solid var(--tg-border-color);
+  border-radius: 6px;
+  background: var(--tg-color-primary);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+[data-theme="dark"] .file-upload input[type="file"]::file-selector-button {
+  background: #5ba3f5;
+  border-color: #5ba3f5;
+}
+
+.file-upload input[type="file"]::file-selector-button:hover {
+  background: var(--tg-color-primary-hover);
+  border-color: var(--tg-color-primary-hover);
 }
 
 .file-upload input[type="file"]:hover {
