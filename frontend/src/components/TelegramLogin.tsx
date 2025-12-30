@@ -222,10 +222,10 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
         window.dispatchEvent(new Event('authChange'));
         
         // Перезагружаем страницу для обновления состояния
-        console.log('🔄 Reloading page...');
+        console.log('🔄 Reloading page after successful auth...');
         setTimeout(() => {
           window.location.reload();
-        }, 100);
+        }, 500);
       } catch (error: any) {
         console.error('❌ Ошибка авторизации через Telegram:', error);
         
