@@ -35,6 +35,13 @@ function Home() {
     loadPaidResources();
   }, []);
 
+  // Логирование для диагностики
+  useEffect(() => {
+    console.log('Categories loaded:', categories.length);
+    console.log('Paid resources loaded:', Object.keys(paidResources).length);
+    console.log('Category types:', categories.map(c => c.type));
+  }, [categories, paidResources]);
+
   useEffect(() => {
     loadResources();
   }, [selectedCategory, page]);
@@ -148,7 +155,32 @@ function Home() {
 
   const renderPaidSection = (categoryType: string) => {
     const category = categories.find(c => c.type === categoryType);
-    if (!category) return null;
+    
+    // Если категория еще не загружена, показываем заглушку
+    if (!category) {
+      return (
+        <div key={categoryType} className={`paid-section paid-section-${categoryType}`}>
+          <div className="paid-section-header">
+            <h2>
+              <span className="category-icon-large">{getCategoryIcon(categoryType)}</span>
+              Загрузка...
+            </h2>
+          </div>
+          <div className="paid-resources-grid">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`loading-${index}`} className="paid-resource-card empty-slot">
+                <div className="paid-resource-cover empty-cover">
+                  <div className="empty-placeholder">{getCategoryIcon(categoryType)}</div>
+                </div>
+                <div className="paid-resource-content">
+                  <h3 className="empty-title">Загрузка...</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     
     const paid = paidResources[categoryType] || [];
     const emptySlots = Math.max(0, 3 - paid.length);
