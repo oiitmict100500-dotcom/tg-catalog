@@ -75,8 +75,25 @@
 }
 
 .admin-section p {
-  margin: 0;
+  margin: 0 0 1rem 0;
   color: var(--text-secondary, #666);
+}
+
+.admin-section-button {
+  background: var(--tg-button-primary, #007bff);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 10px;
+}
+
+.admin-section-button:hover {
+  background: var(--tg-button-primary-hover, #0056b3);
 }
 
 .admin-loading {

@@ -1,5 +1,7 @@
 // API endpoint для отправки ресурса на модерацию
 // Vercel Serverless Function
+import { addSubmission } from '../moderation/pending.js';
+
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -91,11 +93,51 @@ export default async function handler(req, res) {
     // Пока просто сохраняем base64 строку
     const finalCoverImage = coverImage;
 
-    // Здесь должна быть логика сохранения в базу данных
-    // Пока просто возвращаем успех
+    // Получаем информацию о пользователе из токена (если есть)
+    let authorId = null;
+    let authorUsername = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
+        authorId = decoded.id;
+        authorUsername = decoded.username;
+      } catch (e) {
+        console.warn('Could not decode token:', e);
+      }
+    }
+
+    // Формируем финальную ссылку
+    let finalTelegramLink = telegramLink;
+    if (!finalTelegramLink && telegramUsername) {
+      finalTelegramLink = `https://t.me/${telegramUsername.replace('@', '')}`;
+    }
+
+    // Создаем заявку на модерацию
+    const submissionId = 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const submission = {
+      id: submissionId,
+      title: title.trim(),
+      description: description?.trim() || '',
+      telegramLink: finalTelegramLink,
+      telegramUsername: telegramUsername?.trim() || null,
+      categoryId,
+      subcategoryId,
+      coverImage: finalCoverImage,
+      isPrivate: isPrivate || false,
+      authorId: authorId || 'anonymous',
+      authorUsername: authorUsername || 'Анонимный пользователь',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    // Сохраняем заявку в систему модерации
+    addSubmission(submission);
+
     return res.status(200).json({ 
       message: 'Заявка отправлена на модерацию',
-      id: 'temp-' + Date.now(),
+      id: submissionId,
     });
   } catch (error) {
     console.error('Error submitting resource:', error);

@@ -1,0 +1,241 @@
+.moderation-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.moderation-header {
+  margin-bottom: 30px;
+}
+
+.back-button {
+  background: var(--tg-button-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-bottom: 20px;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background: var(--tg-button-primary-hover);
+}
+
+.moderation-header h1 {
+  color: var(--tg-color-text);
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.moderation-header p {
+  color: var(--tg-color-text-secondary);
+  font-size: 1.1rem;
+}
+
+.moderation-loading,
+.moderation-empty {
+  text-align: center;
+  padding: 60px;
+  color: var(--tg-color-text-secondary);
+  font-size: 1.2rem;
+}
+
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.submission-card {
+  background: var(--tg-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px var(--tg-card-shadow);
+  display: flex;
+  gap: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.submission-cover {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--tg-bg-secondary);
+}
+
+.submission-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.submission-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tg-color-text-secondary);
+  background: var(--tg-bg-tertiary);
+}
+
+.submission-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.submission-content h3 {
+  color: var(--tg-color-text);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.submission-description {
+  color: var(--tg-color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.submission-meta {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.submission-meta span {
+  padding: 6px 12px;
+  background: var(--tg-bg-secondary);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--tg-color-text);
+}
+
+.submission-links {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.submission-link {
+  color: var(--tg-color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.submission-link:hover {
+  color: var(--tg-color-primary-hover);
+  text-decoration: underline;
+}
+
+.submission-username,
+.submission-private {
+  padding: 4px 10px;
+  background: var(--tg-bg-secondary);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--tg-color-text);
+}
+
+.submission-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.btn-approve {
+  background: #2ecc71;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background: #27ae60;
+}
+
+.btn-approve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reject-section {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-width: 300px;
+}
+
+.reject-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--tg-border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: var(--tg-input-bg);
+  color: var(--tg-color-text);
+  min-width: 200px;
+}
+
+.reject-input:focus {
+  outline: none;
+  border-color: var(--tg-color-primary);
+}
+
+.btn-reject {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-reject:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.btn-reject:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .submission-card {
+    flex-direction: column;
+  }
+
+  .submission-cover {
+    width: 100%;
+    height: 250px;
+  }
+
+  .reject-section {
+    flex-direction: column;
+    min-width: auto;
+  }
+
+  .reject-input {
+    min-width: auto;
+  }
+}
+
