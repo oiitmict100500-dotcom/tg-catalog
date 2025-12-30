@@ -55,23 +55,7 @@ body {
 
 /* Глобальные правила для мелкого текста в темной теме */
 [data-theme="dark"] small,
-[data-theme="dark"] .small,
-[data-theme="dark"] [class*="small"],
-[data-theme="dark"] p[style*="font-size: 0"],
-[data-theme="dark"] span[style*="font-size: 0"] {
-  color: #ffffff !important;
-}
-
-/* Все элементы с var(--tg-color-text-secondary) в темной теме */
-[data-theme="dark"] * {
-  color: inherit;
-}
-
-[data-theme="dark"] [style*="color: var(--tg-color-text-secondary)"],
-[data-theme="dark"] [style*="color:#666"],
-[data-theme="dark"] [style*="color: #666"],
-[data-theme="dark"] [style*="color:#999"],
-[data-theme="dark"] [style*="color: #999"] {
+[data-theme="dark"] .small {
   color: #ffffff !important;
 }
 

@@ -67,7 +67,7 @@
 
 .form-group label {
   font-weight: 600;
-  color: #333;
+  color: var(--tg-color-text);
 }
 
 [data-theme="dark"] .form-group label {
@@ -132,7 +132,7 @@
   text-align: center;
   padding: 60px;
   font-size: 1.2rem;
-  color: #666;
+  color: var(--tg-color-text-secondary);
 }
 
 [data-theme="dark"] .loading {
