@@ -2,11 +2,24 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 10px;
+  min-height: 40px;
+  min-width: 200px;
 }
 
 #telegram-login-container {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 40px;
+  min-width: 200px;
+}
+
+/* Стили для iframe виджета Telegram */
+#telegram-login-container iframe {
+  min-width: 200px !important;
+  min-height: 40px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }

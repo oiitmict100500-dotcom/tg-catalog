@@ -61,16 +61,30 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
       // Проверяем через небольшую задержку, появился ли виджет
       setTimeout(() => {
         const widget = container.querySelector('iframe');
+        const allElements = container.querySelectorAll('*');
+        console.log('🔍 Container contents:', {
+          innerHTML: container.innerHTML.substring(0, 200),
+          childCount: container.children.length,
+          allElements: allElements.length,
+          hasIframe: !!widget,
+        });
+        
         if (widget) {
           console.log('✅ Widget iframe found in container');
+          console.log('📏 Iframe dimensions:', {
+            width: widget.offsetWidth,
+            height: widget.offsetHeight,
+            display: window.getComputedStyle(widget).display,
+          });
         } else {
           console.warn('⚠️ Widget iframe not found. This might indicate "Bot domain invalid" error.');
           console.warn('💡 Check BotFather: /setdomain -> tg_catalog_bot ->', currentDomain);
           console.warn('💡 Make sure to set domain WITHOUT https:// and WITHOUT trailing slash');
           console.warn('💡 Current domain:', currentDomain);
           console.warn('💡 Set this exact domain in BotFather:', currentDomain);
+          console.warn('💡 Container HTML:', container.innerHTML);
         }
-      }, 2000);
+      }, 3000);
     };
     
     container.appendChild(script);
