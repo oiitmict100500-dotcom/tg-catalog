@@ -34,26 +34,43 @@ function Moderation() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🔍 Moderation: Component mounted, checking admin access...');
     checkAdminAccess();
   }, []);
 
   useEffect(() => {
-    if (user) {
+    console.log('🔍 Moderation: User state changed:', {
+      hasUser: !!user,
+      userRole: user?.role,
+      loading: loading,
+    });
+    if (user && !loading) {
+      console.log('✅ Moderation: User is admin, loading submissions...');
       loadSubmissions();
+    } else if (!loading && !user) {
+      console.warn('⚠️ Moderation: No user found, cannot load submissions');
     }
-  }, [user]);
+  }, [user, loading]);
 
   const checkAdminAccess = async () => {
     try {
+      console.log('🔍 Moderation: Checking admin access...');
       const currentUser = await authService.getCurrentUser();
+      console.log('🔍 Moderation: Current user:', {
+        hasUser: !!currentUser,
+        role: currentUser?.role,
+        id: currentUser?.id,
+      });
       if (!currentUser || currentUser.role !== 'admin') {
+        console.warn('⚠️ Moderation: User is not admin, redirecting...');
         navigate('/admin');
         return;
       }
+      console.log('✅ Moderation: User is admin, setting user state...');
       setUser(currentUser);
       setLoading(false);
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      console.error('❌ Moderation: Error checking admin access:', error);
       navigate('/admin');
     }
   };
