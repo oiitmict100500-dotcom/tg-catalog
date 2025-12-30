@@ -207,6 +207,31 @@ function Moderation() {
       ) : submissions.length === 0 ? (
         <div className="moderation-empty">
           <p>Нет заявок на модерацию</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--tg-color-text-secondary)', marginTop: '10px' }}>
+            Если вы только что отправили заявку, она может появиться через несколько секунд.
+            <br />
+            <strong>Важно:</strong> В Vercel Serverless Functions заявки могут сохраняться на разных инстансах.
+            <br />
+            Для постоянного хранения нужна база данных (PostgreSQL, MongoDB).
+          </p>
+          <button
+            onClick={() => {
+              console.log('🔄 Manually reloading submissions...');
+              loadSubmissions();
+            }}
+            style={{
+              marginTop: '15px',
+              padding: '10px 20px',
+              background: 'var(--tg-button-primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+            }}
+          >
+            🔄 Обновить список
+          </button>
         </div>
       ) : (
         <div className="submissions-list">
