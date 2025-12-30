@@ -22,6 +22,8 @@
 
 Теперь нужно добавить токен бота в переменные окружения вашего backend сервера.
 
+⚠️ **Важно:** Если ваш backend развернут на Vercel, настройка описана ниже в разделе "Для Vercel".
+
 ### Для локальной разработки:
 
 Создайте файл `backend/.env` и добавьте:
@@ -72,16 +74,39 @@ TELEGRAM_BOT_TOKEN=8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM
 
 ### Для Vercel (если backend на Vercel):
 
-1. Откройте https://vercel.com
-2. Войдите в свой аккаунт
-3. Откройте проект backend (это должен быть ОТДЕЛЬНЫЙ проект от frontend!)
-4. Перейдите в **Settings → Environment Variables**
-5. Нажмите **Add New**
-6. Добавьте:
-   - **Name:** `TELEGRAM_BOT_TOKEN`
-   - **Value:** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
-   - **Environment:** Production, Preview, Development (выберите все)
-7. Сохраните и перезапустите deployment
+1. **Откройте Vercel:**
+   - Перейдите на https://vercel.com
+   - Войдите в свой аккаунт (или используйте https://vercel.com/di7gms-projects)
+
+2. **Найдите проект backend:**
+   - На главной странице Vercel вы увидите список ваших проектов
+   - Найдите проект с backend (обычно называется `tg-catalog-backend` или похоже)
+   - ⚠️ **Важно:** Это должен быть ОТДЕЛЬНЫЙ проект от frontend!
+   - Если у вас только один проект, возможно backend и frontend в одном проекте - тогда настройте токен в этом проекте
+
+3. **Откройте настройки проекта:**
+   - Нажмите на проект backend
+   - В верхнем меню нажмите **Settings**
+   - В левом меню выберите **Environment Variables**
+
+4. **Добавьте переменную:**
+   - Нажмите **Add New** (или **Add**)
+   - Заполните форму:
+     - **Name (Имя):** `TELEGRAM_BOT_TOKEN`
+     - **Value (Значение):** `8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM`
+     - **Environment (Окружение):** Выберите все три галочки:
+       - ☑ Production
+       - ☑ Preview
+       - ☑ Development
+
+5. **Сохраните:**
+   - Нажмите **Save**
+   - Vercel автоматически перезапустит deployment
+
+6. **Проверьте:**
+   - Подождите 1-2 минуты
+   - Перейдите в раздел **Deployments**
+   - Убедитесь, что появился новый deployment (автоматический перезапуск)
 
 ## Шаг 3: Настройка VITE_API_URL в Frontend (Vercel)
 
@@ -140,10 +165,12 @@ TELEGRAM_BOT_TOKEN=8527710832:AAHZdTNESfu2ZAMSTD0YEb9BhTTfQb0mCfM
 
 1. **Откройте Vercel:**
    - Перейдите на https://vercel.com
-   - Войдите в свой аккаунт
+   - Войдите в свой аккаунт (или используйте https://vercel.com/di7gms-projects)
 
-2. **Откройте проект frontend:**
-   - Найдите проект `tg-catalog` (или как называется ваш frontend проект)
+2. **Найдите проект frontend:**
+   - На главной странице Vercel вы увидите список ваших проектов
+   - Найдите проект frontend (обычно называется `tg-catalog` или `tg-catalog-one` или похоже)
+   - Это проект, который развернут на домене `tg-catalog-one.vercel.app`
    - Нажмите на него
 
 3. **Откройте настройки:**
