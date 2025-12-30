@@ -15,10 +15,41 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // CORS
+  // CORS - разрешаем запросы с frontend и Vercel доменов
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3001',
+    'https://oiitmict100500-dotcom-tg-catalog.vercel.app',
+    /^https:\/\/.*\.vercel\.app$/, // Разрешаем все Vercel preview домены
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: (origin, callback) => {
+      // Разрешаем запросы без origin (например, Postman, мобильные приложения)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // Проверяем, разрешен ли origin
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (typeof allowedOrigin === 'string') {
+          return origin === allowedOrigin;
+        }
+        if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return false;
+      });
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Initialize categories
