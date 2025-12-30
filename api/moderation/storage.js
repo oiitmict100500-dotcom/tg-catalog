@@ -91,11 +91,23 @@ function saveSubmissions(submissions) {
 export function addSubmission(submission) {
   try {
     const submissions = loadSubmissions();
-    submissions.push(submission);
+    
+    // Проверяем, нет ли уже такой заявки
+    const existingIndex = submissions.findIndex(s => s.id === submission.id);
+    if (existingIndex !== -1) {
+      console.log('⚠️ Submission already exists, updating:', submission.id);
+      submissions[existingIndex] = submission;
+    } else {
+      submissions.push(submission);
+    }
+    
     saveSubmissions(submissions);
     console.log('💾 Submission added to storage:', {
       id: submission.id,
+      title: submission.title,
+      status: submission.status,
       totalSubmissions: submissions.length,
+      allIds: submissions.map(s => s.id),
     });
     return submission;
   } catch (error) {
