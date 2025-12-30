@@ -37,11 +37,16 @@ function Home() {
 
   // Логирование для диагностики
   useEffect(() => {
-    if (categories.length === 0) {
+    if (!Array.isArray(categories) || categories.length === 0) {
       console.warn('⚠️ Категории не загружены! Проверьте API /api/categories');
+      console.warn('Categories type:', typeof categories, 'Is array:', Array.isArray(categories));
     } else {
       console.log('✅ Categories loaded:', categories.length);
-      console.log('Category types:', categories.map(c => c.type));
+      try {
+        console.log('Category types:', categories.map(c => c.type));
+      } catch (e) {
+        console.error('Error mapping categories:', e);
+      }
     }
     console.log('Paid resources loaded:', Object.keys(paidResources).length);
   }, [categories, paidResources]);
@@ -61,12 +66,23 @@ function Home() {
   const loadCategories = async () => {
     try {
       const response = await axios.get('/api/categories');
-      setCategories(response.data || []);
-      setError('');
+      // Проверяем, что данные - это массив
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setCategories(data);
+        setError('');
+      } else {
+        console.error('❌ Categories API returned non-array:', data);
+        setCategories([]);
+        setError('Ошибка: API вернул неверный формат данных');
+      }
     } catch (error: any) {
       console.error('Error loading categories:', error);
+      setCategories([]); // Устанавливаем пустой массив при ошибке
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
         setError('Backend не запущен! Запустите Backend на порту 3000.');
+      } else if (error.response?.status === 404) {
+        setError('API endpoint не найден. Проверьте настройки VITE_API_URL.');
       } else {
         setError('Ошибка загрузки категорий: ' + (error.response?.data?.message || error.message));
       }
@@ -76,20 +92,28 @@ function Home() {
   const loadPaidResources = async () => {
     try {
       const response = await axios.get('/api/resources/paid');
-      // Группируем по категориям
-      const grouped: Record<string, Resource[]> = {};
-      response.data.forEach((resource: Resource) => {
-        const categoryType = resource.category?.type || 'other';
-        if (!grouped[categoryType]) {
-          grouped[categoryType] = [];
-        }
-        if (grouped[categoryType].length < 3) {
-          grouped[categoryType].push(resource);
-        }
-      });
-      setPaidResources(grouped);
-    } catch (error) {
+      // Проверяем, что данные - это массив
+      const data = response.data;
+      if (Array.isArray(data)) {
+        // Группируем по категориям
+        const grouped: Record<string, Resource[]> = {};
+        data.forEach((resource: Resource) => {
+          const categoryType = resource.category?.type || 'other';
+          if (!grouped[categoryType]) {
+            grouped[categoryType] = [];
+          }
+          if (grouped[categoryType].length < 3) {
+            grouped[categoryType].push(resource);
+          }
+        });
+        setPaidResources(grouped);
+      } else {
+        console.error('❌ Paid resources API returned non-array:', data);
+        setPaidResources({});
+      }
+    } catch (error: any) {
       console.error('Error loading paid resources:', error);
+      setPaidResources({}); // Устанавливаем пустой объект при ошибке
     }
   };
 
@@ -103,9 +127,16 @@ function Home() {
     setError('');
     try {
       const params: any = { page, limit: 20 };
-      const category = categories.find(c => c.id === selectedCategory);
-      if (category) {
-        params.category = category.id;
+      // Проверяем, что categories - это массив
+      if (Array.isArray(categories) && categories.length > 0) {
+        try {
+          const category = categories.find(c => c && c.id === selectedCategory);
+          if (category) {
+            params.category = category.id;
+          }
+        } catch (findError) {
+          console.error('Error finding category:', findError);
+        }
       }
       const response = await axios.get('/api/resources', { params });
       setResources(response.data?.data || []);
@@ -158,10 +189,27 @@ function Home() {
   };
 
   const renderPaidSection = (categoryType: string) => {
-    const category = categories.find(c => c.type === categoryType);
-    
-    // Если категория еще не загружена, показываем пустые слоты для покупки
-    if (!category) {
+    try {
+      // Защита от ошибок при работе с categories
+      let category = undefined;
+      
+      // Строгая проверка, что categories - это массив
+      if (!categories) {
+        console.warn('⚠️ categories is null/undefined in renderPaidSection');
+      } else if (!Array.isArray(categories)) {
+        console.error('❌ categories is not an array in renderPaidSection:', typeof categories, categories);
+      } else if (categories.length > 0) {
+        try {
+          // Дополнительная проверка каждого элемента
+          const validCategories = categories.filter(c => c && typeof c === 'object' && c.type);
+          category = validCategories.find(c => c.type === categoryType);
+        } catch (findError) {
+          console.error('Error finding category in renderPaidSection:', findError);
+        }
+      }
+      
+      // Если категория еще не загружена, показываем пустые слоты для покупки
+      if (!category) {
       const categoryNames: Record<string, string> = {
         channel: 'Каналы',
         group: 'Группы',
@@ -204,7 +252,23 @@ function Home() {
       );
     }
     
-    const paid = paidResources[categoryType] || [];
+    // Если category не найдена, мы уже вернулись выше, так что здесь category всегда существует
+    // Строгая проверка paidResources с защитой от ошибок
+    let paid: Resource[] = [];
+    try {
+      if (paidResources && typeof paidResources === 'object' && !Array.isArray(paidResources)) {
+        const categoryResources = paidResources[categoryType];
+        if (Array.isArray(categoryResources)) {
+          paid = categoryResources;
+        } else if (categoryResources) {
+          console.warn('⚠️ paidResources[categoryType] is not an array:', typeof categoryResources, categoryType);
+        }
+      } else if (paidResources) {
+        console.warn('⚠️ paidResources is not an object:', typeof paidResources);
+      }
+    } catch (error) {
+      console.error('Error accessing paidResources:', error);
+    }
     const emptySlots = Math.max(0, 3 - paid.length);
 
     return (
@@ -225,7 +289,7 @@ function Home() {
         </div>
         <div className="paid-resources-grid">
           {/* Показываем платные ресурсы */}
-          {paid.map((resource) => (
+          {Array.isArray(paid) && paid.map((resource) => (
             <Link
               key={resource.id}
               to={`/resource/${resource.id}`}
@@ -263,6 +327,14 @@ function Home() {
         </div>
       </div>
     );
+    } catch (error) {
+      console.error('Error in renderPaidSection:', error, 'categoryType:', categoryType);
+      return (
+        <div key={categoryType} className="paid-section-error">
+          <p>Ошибка загрузки секции {categoryType}</p>
+        </div>
+      );
+    }
   };
 
   return (
@@ -289,7 +361,7 @@ function Home() {
       <div className="categories-section">
         <h2 className="section-title">Категории</h2>
         <div className="categories-grid">
-          {categories.map((category) => (
+          {Array.isArray(categories) ? categories.map((category) => (
             <Link
               key={category.id}
               to={`/?category=${category.id}`}
@@ -299,7 +371,9 @@ function Home() {
               <span className="category-card-icon">{getCategoryIcon(category.type)}</span>
               <span className="category-card-name">{category.name}</span>
             </Link>
-          ))}
+          )) : (
+            <div className="error-message">Категории не загружены. Проверьте подключение к API.</div>
+          )}
         </div>
       </div>
 
@@ -307,7 +381,7 @@ function Home() {
       {selectedCategory ? (
         <div className="resources-section">
           <h2 className="section-title">
-            {categories.find(c => c.id === selectedCategory)?.name || 'Ресурсы'}
+            {Array.isArray(categories) ? categories.find(c => c.id === selectedCategory)?.name || 'Ресурсы' : 'Ресурсы'}
           </h2>
 
           {error ? (

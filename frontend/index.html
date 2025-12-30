@@ -7,8 +7,32 @@
     <title>TG Catalog - Каталог Telegram-ресурсов</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="padding: 20px; text-align: center; font-family: system-ui;">
+        <h1>Загрузка...</h1>
+        <p>Если это сообщение не исчезло через несколько секунд, проверьте консоль (F12)</p>
+      </div>
+    </div>
+    <script>
+      // Немедленная диагностика
+      console.log('📄 HTML loaded');
+      console.log('📄 Root element:', document.getElementById('root'));
+      console.log('📄 Document ready state:', document.readyState);
+      console.log('📄 Script will load:', '/src/main.tsx');
+      
+      // Показываем сообщение сразу
+      const root = document.getElementById('root');
+      if (root) {
+        root.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Загрузка...</h1><p>Если это сообщение не исчезло, проверьте консоль (F12)</p></div>';
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
+    <noscript>
+      <div style="padding: 20px; text-align: center;">
+        <h1>JavaScript отключен</h1>
+        <p>Включите JavaScript для работы приложения</p>
+      </div>
+    </noscript>
   </body>
 </html>
 

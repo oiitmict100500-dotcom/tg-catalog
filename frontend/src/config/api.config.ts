@@ -1,14 +1,52 @@
 // API Configuration
 // В production используйте переменную окружения VITE_API_URL
-// Например: https://your-backend.herokuapp.com или https://api.yourdomain.com
+// Например: https://your-backend.railway.app или https://api.yourdomain.com
+// 
+// Настройка в Vercel:
+// Settings → Environment Variables → Add:
+// Name: VITE_API_URL
+// Value: https://ваш-backend-url.com (БЕЗ слеша в конце!)
 
 const getApiUrl = () => {
   // В production используем переменную окружения
   if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+    const url = import.meta.env.VITE_API_URL.trim();
+    
+    // Проверяем, что это не URL frontend (должен быть URL backend)
+    if (url.includes('vercel.app') && !url.includes('railway') && !url.includes('render') && !url.includes('heroku') && !url.includes('api.')) {
+      console.error('❌ ОШИБКА: VITE_API_URL указывает на frontend домен!');
+      console.error('📖 VITE_API_URL должен быть URL вашего BACKEND сервера, а не frontend!');
+      console.error('📖 Пример правильного значения: https://tg-catalog-backend.railway.app');
+      console.error('📖 Текущее значение:', url);
+      console.error('📖 Инструкция: см. файл БЫСТРАЯ_НАСТРОЙКА.md');
+      // Не используем неправильный URL, возвращаем пустую строку
+      return '';
+    }
+    
+    // Проверяем, что URL начинается с http:// или https://
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      console.warn('⚠️ VITE_API_URL должен начинаться с http:// или https://');
+      console.warn('📖 Текущее значение:', url);
+      // Добавляем https:// если не указан протокол
+      return `https://${url}`;
+    }
+    
+    // Убираем слеш в конце если есть
+    return url.endsWith('/') ? url.slice(0, -1) : url;
   }
   
-  // По умолчанию используем относительные пути (API на том же домене Vercel)
+  // В development используем относительные пути (через proxy в vite.config.ts)
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  
+  // В production без VITE_API_URL показываем предупреждение
+  if (import.meta.env.PROD) {
+    console.warn('⚠️ VITE_API_URL не установлен! Установите переменную окружения VITE_API_URL в Vercel Settings → Environment Variables');
+    console.warn('📖 Инструкция: см. файл БЫСТРАЯ_НАСТРОЙКА.md');
+  }
+  
+  // По умолчанию используем относительные пути (не будет работать если backend не на том же домене)
   return '';
 };
 

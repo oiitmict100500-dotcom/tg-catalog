@@ -43,3 +43,4 @@ FRONTEND_URL=https://oiitmict100500-dotcom-tg-catalog.vercel.app
 2. Перезапустите приложение
 3. Проверьте логи - не должно быть ошибок CORS
 
+

@@ -18,11 +18,24 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
   useEffect(() => {
     // Получаем текущий домен для проверки
     const currentDomain = window.location.hostname;
+    const apiBaseUrl = import.meta.env.VITE_API_URL;
+    
+    // Предупреждение в production если VITE_API_URL не установлен
+    if (import.meta.env.PROD && !apiBaseUrl) {
+      console.error('⚠️ ВНИМАНИЕ: VITE_API_URL не установлен!');
+      console.error('📖 Установите переменную окружения VITE_API_URL в Vercel:');
+      console.error('   Settings → Environment Variables → Add');
+      console.error('   Name: VITE_API_URL');
+      console.error('   Value: https://ваш-backend-url.com');
+      console.error('📖 Подробная инструкция: НАСТРОЙКА_VERCEL_PRODUCTION.md');
+    }
     
     console.log('🔍 TelegramLogin: Initializing...', {
       botName,
       currentDomain,
       fullUrl: window.location.href,
+      apiBaseUrl: apiBaseUrl || 'не установлен (используются относительные пути)',
+      isProduction: import.meta.env.PROD,
     });
     
     // Загружаем скрипт Telegram Login Widget
@@ -120,8 +133,11 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
         }
 
         const apiUrl = getApiEndpoint('api/auth/telegram');
+        const fullUrl = apiUrl.startsWith('http') ? apiUrl : window.location.origin + apiUrl;
         console.log('📤 Sending auth request to:', apiUrl);
+        console.log('📤 Full URL:', fullUrl);
         console.log('📤 Request body:', requestBody);
+        console.log('📤 API Base URL:', import.meta.env.VITE_API_URL || 'не установлен (используются относительные пути)');
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -129,49 +145,103 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
+          credentials: 'include', // Важно для CORS с credentials
         });
 
         console.log('📥 Auth response status:', response.status);
+        console.log('📥 Auth response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Неизвестная ошибка' }));
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            errorData = { message: 'Неизвестная ошибка' };
+          }
+          
           console.error('❌ Auth error response:', errorData);
+          console.error('❌ Response status:', response.status);
+          console.error('❌ Response statusText:', response.statusText);
           
           // Более понятные сообщения об ошибках
           let errorMessage = errorData.message || 'Ошибка авторизации';
-          if (response.status === 404) {
-            errorMessage = 'Backend API не найден. Убедитесь, что backend запущен.';
+          if (response.status === 401) {
+            errorMessage = errorData.message || 'Неверные данные авторизации Telegram. Проверьте настройки домена в BotFather.';
+          } else if (response.status === 404) {
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'не установлен';
+            errorMessage = `Backend API не найден (404). Проверьте:\n` +
+              `1. Backend развернут и доступен\n` +
+              `2. VITE_API_URL установлен в Vercel: ${apiBaseUrl}\n` +
+              `3. URL backend правильный: ${fullUrl}\n` +
+              `📖 См. инструкцию: НАСТРОЙКА_VERCEL_PRODUCTION.md`;
           } else if (response.status === 500) {
-            errorMessage = 'Ошибка сервера. Проверьте логи backend.';
+            errorMessage = errorData.message || 'Ошибка сервера. Проверьте логи backend и настройки TELEGRAM_BOT_TOKEN.';
           } else if (response.status === 0 || response.status === 503) {
-            errorMessage = 'Не удалось подключиться к серверу. Проверьте, что backend запущен.';
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'не установлен';
+            errorMessage = `Не удалось подключиться к серверу. Проверьте:\n` +
+              `1. Backend запущен и доступен\n` +
+              `2. VITE_API_URL установлен: ${apiBaseUrl}\n` +
+              `3. CORS настроен правильно\n` +
+              `4. URL backend: ${fullUrl}\n` +
+              `📖 См. инструкцию: НАСТРОЙКА_VERCEL_PRODUCTION.md`;
+          } else if (response.status === 400) {
+            errorMessage = errorData.message || 'Неверный запрос. Проверьте данные авторизации.';
           }
           
           throw new Error(errorMessage);
         }
 
         const data = await response.json();
-        console.log('✅ Auth successful, user:', data.user?.username || data.user?.email);
+        console.log('✅ Auth successful, response data:', data);
+        console.log('✅ User:', data.user?.username || data.user?.email || data.user?.id);
         
         // Сохраняем токен
         if (data.token) {
           authService.setToken(data.token);
-          window.dispatchEvent(new Event('authChange'));
-          console.log('✅ Token saved');
+          console.log('✅ Token saved to localStorage');
         } else {
           console.warn('⚠️ No token in response');
+          throw new Error('Токен не получен от сервера');
         }
 
+        // Сохраняем пользователя
+        if (data.user) {
+          authService.setUser(data.user);
+          console.log('✅ User saved to localStorage');
+        }
+
+        // Вызываем callback если есть
         if (onAuth) {
           onAuth(data.user);
         }
+
+        // Отправляем событие об изменении авторизации
+        window.dispatchEvent(new Event('authChange'));
         
         // Перезагружаем страницу для обновления состояния
         console.log('🔄 Reloading page...');
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } catch (error: any) {
-        console.error('Ошибка авторизации через Telegram:', error);
-        const errorMessage = error.message || 'Ошибка авторизации. Попробуйте еще раз.';
+        console.error('❌ Ошибка авторизации через Telegram:', error);
+        
+        let errorMessage = 'Ошибка авторизации. Попробуйте еще раз.';
+        
+        // Обработка сетевых ошибок
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          const apiBaseUrl = import.meta.env.VITE_API_URL || 'не установлен';
+          errorMessage = `Не удалось подключиться к backend серверу.\n\n` +
+            `Возможные причины:\n` +
+            `1. Backend не развернут или недоступен\n` +
+            `2. VITE_API_URL не установлен в Vercel: ${apiBaseUrl}\n` +
+            `3. Неправильный URL backend\n\n` +
+            `📖 Инструкция по настройке: НАСТРОЙКА_VERCEL_PRODUCTION.md\n\n` +
+            `Проверьте консоль браузера (F12) для подробностей.`;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         alert(errorMessage);
       }
     };

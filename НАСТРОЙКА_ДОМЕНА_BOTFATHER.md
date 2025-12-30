@@ -47,3 +47,4 @@ oiitmict100500-dotcom-tg-catalog.vercel.app
 - Очистите кэш браузера (Ctrl+Shift+Delete)
 - Попробуйте в режиме инкогнито
 
+

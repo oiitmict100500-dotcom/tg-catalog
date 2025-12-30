@@ -151,28 +151,33 @@ export class AuthService {
         return false;
       }
 
-      // Формируем данные для проверки хеша
+      // Формируем объект с данными для проверки (исключая hash)
       // Важно: включаем только непустые поля (не null, не undefined, не пустая строка)
-      const dataCheckArray: string[] = [];
+      const dataToCheck: Record<string, string | number> = {};
       
-      dataCheckArray.push(`auth_date=${telegramAuth.auth_date}`);
-      dataCheckArray.push(`first_name=${telegramAuth.first_name}`);
-      dataCheckArray.push(`id=${telegramAuth.id}`);
+      // Обязательные поля
+      dataToCheck['auth_date'] = telegramAuth.auth_date;
+      dataToCheck['first_name'] = telegramAuth.first_name;
+      dataToCheck['id'] = telegramAuth.id;
       
+      // Опциональные поля (только если они не пустые)
       if (telegramAuth.last_name && telegramAuth.last_name.trim() !== '') {
-        dataCheckArray.push(`last_name=${telegramAuth.last_name}`);
+        dataToCheck['last_name'] = telegramAuth.last_name;
       }
       
       if (telegramAuth.photo_url && telegramAuth.photo_url.trim() !== '') {
-        dataCheckArray.push(`photo_url=${telegramAuth.photo_url}`);
+        dataToCheck['photo_url'] = telegramAuth.photo_url;
       }
       
       if (telegramAuth.username && telegramAuth.username.trim() !== '') {
-        dataCheckArray.push(`username=${telegramAuth.username}`);
+        dataToCheck['username'] = telegramAuth.username;
       }
 
-      // Сортируем по ключам (алфавитно)
-      const dataCheckString = dataCheckArray.sort().join('\n');
+      // Формируем строку для проверки: сортируем ключи по алфавиту
+      const sortedKeys = Object.keys(dataToCheck).sort();
+      const dataCheckString = sortedKeys
+        .map(key => `${key}=${dataToCheck[key]}`)
+        .join('\n');
 
       // Создаем секретный ключ из bot token
       const secretKey = crypto
@@ -193,11 +198,12 @@ export class AuthService {
           receivedHash: telegramAuth.hash,
           calculatedHash: hmac,
           match: hmac === telegramAuth.hash,
+          botTokenLength: botToken?.length || 0,
         });
       }
 
-      // Сравниваем хеши
-      return hmac === telegramAuth.hash;
+      // Сравниваем хеши (без учета регистра)
+      return hmac.toLowerCase() === telegramAuth.hash.toLowerCase();
     } catch (error) {
       console.error('Error verifying Telegram auth:', error);
       return false;
@@ -205,28 +211,42 @@ export class AuthService {
   }
 
   async loginWithTelegram(telegramAuth: TelegramAuthDto): Promise<{ user: any; token: string }> {
+    console.log('🔐 loginWithTelegram called with:', {
+      id: telegramAuth.id,
+      username: telegramAuth.username,
+      first_name: telegramAuth.first_name,
+      hasHash: !!telegramAuth.hash,
+      auth_date: new Date(telegramAuth.auth_date * 1000).toISOString(),
+    });
+
     const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
     
     if (!botToken) {
-      console.error('Telegram bot token not configured');
+      console.error('❌ Telegram bot token not configured');
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('TELEGRAM') || k.includes('BOT')));
       throw new BadRequestException('Telegram bot token не настроен. Проверьте переменные окружения TELEGRAM_BOT_TOKEN или BOT_TOKEN');
     }
+
+    console.log('✅ Bot token found, length:', botToken.length);
 
     // Проверяем подлинность данных Telegram
     const isValid = await this.verifyTelegramAuth(telegramAuth, botToken);
     if (!isValid) {
-      console.error('Telegram auth verification failed', {
+      console.error('❌ Telegram auth verification failed', {
         userId: telegramAuth.id,
         username: telegramAuth.username,
         authDate: new Date(telegramAuth.auth_date * 1000).toISOString(),
       });
-      throw new UnauthorizedException('Неверные данные авторизации Telegram. Проверьте настройки домена в BotFather.');
+      throw new UnauthorizedException('Неверные данные авторизации Telegram. Проверьте настройки домена в BotFather и правильность токена бота.');
     }
+
+    console.log('✅ Telegram auth verified successfully');
 
     // Ищем или создаем пользователя
     let user = await this.usersService.findByTelegramId(telegramAuth.id.toString());
 
     if (!user) {
+      console.log('👤 Creating new user for Telegram ID:', telegramAuth.id);
       // Создаем нового пользователя
       const fullName = `${telegramAuth.first_name}${telegramAuth.last_name ? ' ' + telegramAuth.last_name : ''}`;
       user = await this.usersService.create({
@@ -237,7 +257,9 @@ export class AuthService {
         avatar: telegramAuth.photo_url || null,
         bio: null,
       });
+      console.log('✅ New user created:', user.id, user.username);
     } else {
+      console.log('👤 Updating existing user:', user.id, user.username);
       // Обновляем данные пользователя
       if (telegramAuth.username && user.username !== telegramAuth.username) {
         user.username = telegramAuth.username;
@@ -246,12 +268,27 @@ export class AuthService {
         user.avatar = telegramAuth.photo_url;
       }
       await this.usersService.update(user.id, user);
+      console.log('✅ User updated');
     }
 
     // Генерируем JWT токен
     const token = await this.generateJwtToken(user);
+    console.log('✅ JWT token generated');
 
-    return { user, token };
+    // Формируем ответ в правильном формате
+    const response = {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio,
+      },
+      token: token,
+    };
+
+    console.log('✅ Returning auth response for user:', response.user.username);
+    return response;
   }
 
   async generateJwtToken(user: any): Promise<string> {

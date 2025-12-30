@@ -11,7 +11,7 @@ const API_URL = getApiEndpoint('api/auth');
 export interface User {
   id: string;
   username: string;
-  email: string;
+  email?: string | null;
   avatar?: string;
   bio?: string;
 }
@@ -90,6 +90,7 @@ class AuthService {
   logout() {
     this.token = null;
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
   }
 

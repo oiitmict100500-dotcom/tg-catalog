@@ -1,5 +1,5 @@
 // Простой API endpoint для авторизации через Telegram
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки

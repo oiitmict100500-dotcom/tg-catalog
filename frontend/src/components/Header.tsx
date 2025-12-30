@@ -23,6 +23,18 @@ function Header() {
   useEffect(() => {
     loadCategories();
     checkAuth();
+
+    // Обработчик события изменения авторизации
+    const handleAuthChange = () => {
+      console.log('🔄 Auth change event received, checking auth...');
+      checkAuth();
+    };
+
+    window.addEventListener('authChange', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, []);
 
   // Закрытие меню при клике вне его
@@ -45,19 +57,49 @@ function Header() {
   const loadCategories = async () => {
     try {
       const response = await axios.get('/api/categories');
-      setCategories(response.data || []);
+      const data = response.data;
+      // Проверяем, что данные - это массив
+      if (Array.isArray(data)) {
+        setCategories(data);
+      } else {
+        console.error('❌ Categories API returned non-array:', data);
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Error loading categories:', error);
+      setCategories([]); // Устанавливаем пустой массив при ошибке
     }
   };
 
   const checkAuth = async () => {
     try {
+      // Сначала проверяем localStorage для быстрого отображения
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        } catch (e) {
+          console.error('Error parsing saved user:', e);
+        }
+      }
+
+      // Затем проверяем через API для актуальных данных
       if (authService.isAuthenticated()) {
         const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
+        if (currentUser) {
+          setUser(currentUser);
+          authService.setUser(currentUser); // Обновляем localStorage
+        } else {
+          // Если API вернул null, очищаем состояние
+          authService.logout();
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } catch (error) {
+      console.error('Error checking auth:', error);
       authService.logout();
       setUser(null);
     }
