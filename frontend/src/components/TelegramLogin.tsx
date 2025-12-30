@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import authService from '../services/auth.service';
+import { getApiEndpoint } from '../config/api.config';
 import './TelegramLogin.css';
 
 declare global {
@@ -104,9 +105,11 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
           requestBody.photo_url = telegramUser.photo_url;
         }
 
-        console.log('📤 Sending auth request to /api/auth/telegram');
+        const apiUrl = getApiEndpoint('api/auth/telegram');
+        console.log('📤 Sending auth request to:', apiUrl);
+        console.log('📤 Request body:', requestBody);
         
-        const response = await fetch('/api/auth/telegram', {
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
