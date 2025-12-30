@@ -184,7 +184,11 @@ function Home() {
           </div>
           <div className="paid-resources-grid">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={`empty-${index}`} className="paid-resource-card empty-slot clickable-slot">
+              <Link
+                key={`empty-${index}`}
+                to={`/buy-ad/${categoryType}`}
+                className="paid-resource-card empty-slot clickable-slot"
+              >
                 <div className="paid-resource-cover empty-cover">
                   <div className="empty-placeholder">{getCategoryIcon(categoryType)}</div>
                 </div>
@@ -193,7 +197,7 @@ function Home() {
                   <p className="empty-text">Купить рекламный слот</p>
                   <div className="paid-resource-link empty-link">💎 Разместить</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
