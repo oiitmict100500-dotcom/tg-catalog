@@ -40,15 +40,16 @@ export default async function handler(req, res) {
     // Загружаем заявки на модерацию
     const pendingSubmissions = getPendingSubmissions();
     
+    // Загружаем все заявки для диагностики
+    const { loadSubmissions } = await import('./storage.js');
+    const allSubmissions = loadSubmissions();
+    
     console.log('📋 Loading pending submissions:', {
       count: pendingSubmissions.length,
       ids: pendingSubmissions.map(s => s.id),
       titles: pendingSubmissions.map(s => s.title),
     });
     
-    // Загружаем все заявки для диагностики
-    const { loadSubmissions } = await import('./storage.js');
-    const allSubmissions = loadSubmissions();
     console.log('📊 All submissions in storage:', {
       total: allSubmissions.length,
       byStatus: {
@@ -57,12 +58,18 @@ export default async function handler(req, res) {
         rejected: allSubmissions.filter(s => s.status === 'rejected').length,
       },
       allIds: allSubmissions.map(s => s.id),
+      hasGlobalStorage: typeof global !== 'undefined' && !!global.moderationStorage,
+      globalStorageCount: typeof global !== 'undefined' && global.moderationStorage ? global.moderationStorage.submissions?.length : 0,
     });
     
     // Если заявок нет, логируем для отладки
     if (pendingSubmissions.length === 0) {
       console.log('⚠️ No pending submissions found');
-      console.log('💡 Check if submissions are being saved correctly in /api/resources/submit');
+      console.log('💡 This might be because:');
+      console.log('   1. Submissions are saved on a different Vercel instance');
+      console.log('   2. Storage is not persisting between function calls');
+      console.log('   3. Submissions were not saved correctly');
+      console.log('💡 Solution: Use a database (PostgreSQL, MongoDB) or external storage service');
     }
 
     return res.status(200).json({

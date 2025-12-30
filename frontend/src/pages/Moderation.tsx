@@ -62,17 +62,34 @@ function Moderation() {
     setLoadingSubmissions(true);
     try {
       const token = authService.getToken();
+      console.log('📤 Loading submissions from API...');
       const response = await axios.get('/api/moderation/pending', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log('📥 API response:', {
+        count: response.data.count,
+        submissions: response.data.submissions,
+      });
       setSubmissions(response.data.submissions || []);
+      
+      // Если заявок нет, показываем информацию
+      if (!response.data.submissions || response.data.submissions.length === 0) {
+        console.warn('⚠️ No submissions received from API');
+      }
     } catch (error: any) {
-      console.error('Error loading submissions:', error);
+      console.error('❌ Error loading submissions:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        data: error.response?.data,
+      });
       if (error.response?.status === 401 || error.response?.status === 403) {
         alert('Ошибка доступа. Проверьте права администратора.');
         navigate('/admin');
+      } else {
+        console.error('Failed to load submissions:', error.message);
       }
     } finally {
       setLoadingSubmissions(false);

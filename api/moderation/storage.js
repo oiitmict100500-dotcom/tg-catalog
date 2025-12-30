@@ -7,8 +7,17 @@ import fs from 'fs';
 import path from 'path';
 
 // Глобальное хранилище в памяти (работает в рамках одного инстанса)
-const globalStorage = global.moderationStorage || { submissions: [] };
-global.moderationStorage = globalStorage;
+// ВАЖНО: В Vercel каждый инстанс имеет свою память, поэтому данные не синхронизируются
+let globalStorage;
+if (typeof global !== 'undefined') {
+  if (!global.moderationStorage) {
+    global.moderationStorage = { submissions: [] };
+  }
+  globalStorage = global.moderationStorage;
+} else {
+  // Fallback для случаев, когда global недоступен
+  globalStorage = { submissions: [] };
+}
 
 // Пробуем использовать /tmp, если не доступно - используем текущую директорию
 let STORAGE_FILE = '/tmp/moderation_submissions.json';
