@@ -230,12 +230,23 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
         // Сохраняем пользователя
         authService.setUser(data.user);
         console.log('✅ User saved to localStorage');
+        console.log('👤 User data with role:', { 
+          id: data.user.id, 
+          username: data.user.username, 
+          role: data.user.role,
+          isAdmin: data.user.role === 'admin'
+        });
         
         // Проверяем, что пользователь сохранился
         const savedUser = localStorage.getItem('user');
         console.log('✅ User verification:', savedUser ? 'Saved successfully' : 'NOT SAVED!');
         if (savedUser) {
-          console.log('✅ Saved user data:', JSON.parse(savedUser));
+          const parsedUser = JSON.parse(savedUser);
+          console.log('✅ Saved user data:', parsedUser);
+          console.log('🔐 Admin check in saved data:', { 
+            role: parsedUser.role, 
+            isAdmin: parsedUser.role === 'admin' 
+          });
         }
 
         // Вызываем callback если есть

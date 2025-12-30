@@ -91,6 +91,7 @@ function Header() {
           // Проверяем, что данные валидные
           if (userData && userData.id) {
             console.log('✅ checkAuth: Valid user found in localStorage, setting user state');
+            console.log('👤 User data:', { id: userData.id, username: userData.username, role: userData.role });
             setUser(userData);
             
             // Проверяем через API для актуальных данных (в фоне, не блокируем UI)
@@ -100,6 +101,7 @@ function Header() {
                 const currentUser = await authService.getCurrentUser();
                 if (currentUser) {
                   console.log('✅ checkAuth: API returned user, updating state');
+                  console.log('👤 API User data:', { id: currentUser.id, username: currentUser.username, role: currentUser.role });
                   setUser(currentUser);
                   authService.setUser(currentUser); // Обновляем localStorage
                 } else {
@@ -115,6 +117,7 @@ function Header() {
               }
             }
             console.log('✅ checkAuth: User authenticated from localStorage');
+            console.log('🔐 Admin check:', { isAdmin: userData.role === 'admin', role: userData.role });
             return; // Выходим, если пользователь найден
           } else {
             console.warn('⚠️ checkAuth: Invalid user data in localStorage');
@@ -252,14 +255,21 @@ function Header() {
                 <div className="dropdown-menu user-dropdown">
                   <Link to="/profile" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>Профиль</Link>
                   <Link to="/my-resources" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>Мои ресурсы</Link>
-                  {user?.role === 'admin' && (
-                    <>
-                      <div className="dropdown-divider"></div>
-                      <Link to="/admin" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
-                        ⚙️ Админ панель
-                      </Link>
-                    </>
-                  )}
+                  {(() => {
+                    console.log('🔐 Admin menu check:', { 
+                      user: user ? { id: user.id, username: user.username, role: user.role } : null,
+                      isAdmin: user?.role === 'admin',
+                      willShow: user?.role === 'admin'
+                    });
+                    return user?.role === 'admin' ? (
+                      <>
+                        <div className="dropdown-divider"></div>
+                        <Link to="/admin" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
+                          ⚙️ Админ панель
+                        </Link>
+                      </>
+                    ) : null;
+                  })()}
                   <div className="dropdown-divider"></div>
                   <button onClick={() => { handleLogout(); setIsUserMenuOpen(false); }} className="dropdown-item">Выйти</button>
                 </div>
