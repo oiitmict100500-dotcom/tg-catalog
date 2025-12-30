@@ -46,9 +46,23 @@ export default async function handler(req, res) {
       titles: pendingSubmissions.map(s => s.title),
     });
     
+    // Загружаем все заявки для диагностики
+    const { loadSubmissions } = await import('./storage.js');
+    const allSubmissions = loadSubmissions();
+    console.log('📊 All submissions in storage:', {
+      total: allSubmissions.length,
+      byStatus: {
+        pending: allSubmissions.filter(s => s.status === 'pending').length,
+        approved: allSubmissions.filter(s => s.status === 'approved').length,
+        rejected: allSubmissions.filter(s => s.status === 'rejected').length,
+      },
+      allIds: allSubmissions.map(s => s.id),
+    });
+    
     // Если заявок нет, логируем для отладки
     if (pendingSubmissions.length === 0) {
       console.log('⚠️ No pending submissions found');
+      console.log('💡 Check if submissions are being saved correctly in /api/resources/submit');
     }
 
     return res.status(200).json({

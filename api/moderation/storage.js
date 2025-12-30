@@ -1,10 +1,14 @@
-// Простое файловое хранилище для заявок на модерацию
-// Использует /tmp директорию Vercel для записи файлов
-// ВАЖНО: В Vercel Serverless Functions /tmp может не работать между разными инстансами
+// Хранилище для заявок на модерацию
+// Использует глобальный объект в памяти + файловое хранилище как резерв
+// ВАЖНО: В Vercel Serverless Functions каждый инстанс имеет свою память
 // Для продакшена рекомендуется использовать базу данных
 
 import fs from 'fs';
 import path from 'path';
+
+// Глобальное хранилище в памяти (работает в рамках одного инстанса)
+const globalStorage = global.moderationStorage || { submissions: [] };
+global.moderationStorage = globalStorage;
 
 // Пробуем использовать /tmp, если не доступно - используем текущую директорию
 let STORAGE_FILE = '/tmp/moderation_submissions.json';
@@ -22,38 +26,50 @@ try {
   STORAGE_FILE = path.join(process.cwd(), 'moderation_submissions.json');
 }
 
-// Инициализация хранилища
-function initStorage() {
+// Синхронизация с файлом при старте
+function syncFromFile() {
+  try {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const data = fs.readFileSync(STORAGE_FILE, 'utf8');
+      const fileSubmissions = JSON.parse(data || '[]');
+      if (fileSubmissions.length > 0) {
+        console.log('📂 Syncing from file:', fileSubmissions.length, 'submissions');
+        globalStorage.submissions = fileSubmissions;
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not sync from file:', error.message);
+  }
+}
+
+// Синхронизация в файл
+function syncToFile() {
   try {
     const dir = path.dirname(STORAGE_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    if (!fs.existsSync(STORAGE_FILE)) {
-      fs.writeFileSync(STORAGE_FILE, JSON.stringify([]), 'utf8');
-      console.log('📁 Created storage file:', STORAGE_FILE);
-    }
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(globalStorage.submissions, null, 2), 'utf8');
   } catch (error) {
-    console.error('❌ Error initializing storage:', error);
-    console.error('Storage file path:', STORAGE_FILE);
+    console.warn('⚠️ Could not sync to file:', error.message);
   }
 }
+
+// Инициализация при загрузке модуля
+syncFromFile();
 
 // Загрузка всех заявок
 export function loadSubmissions() {
   try {
-    initStorage();
-    if (!fs.existsSync(STORAGE_FILE)) {
-      console.log('📁 Storage file does not exist, returning empty array');
-      return [];
-    }
-    const data = fs.readFileSync(STORAGE_FILE, 'utf8');
-    const submissions = JSON.parse(data || '[]');
-    console.log('📂 Loaded submissions from:', STORAGE_FILE, 'Count:', submissions.length);
+    // Сначала пробуем синхронизировать с файлом
+    syncFromFile();
+    
+    const submissions = globalStorage.submissions || [];
+    console.log('📂 Loaded submissions from memory:', submissions.length);
+    console.log('📋 Submission IDs:', submissions.map(s => s.id));
     return submissions;
   } catch (error) {
     console.error('❌ Error loading submissions:', error);
-    console.error('Storage file:', STORAGE_FILE);
     return [];
   }
 }
@@ -61,12 +77,12 @@ export function loadSubmissions() {
 // Сохранение всех заявок
 function saveSubmissions(submissions) {
   try {
-    initStorage();
-    fs.writeFileSync(STORAGE_FILE, JSON.stringify(submissions, null, 2), 'utf8');
-    console.log('💾 Saved submissions to:', STORAGE_FILE, 'Count:', submissions.length);
+    globalStorage.submissions = submissions;
+    // Пробуем синхронизировать с файлом (но не критично если не получится)
+    syncToFile();
+    console.log('💾 Saved submissions to memory:', submissions.length);
   } catch (error) {
     console.error('❌ Error saving submissions:', error);
-    console.error('Storage file:', STORAGE_FILE);
     throw error;
   }
 }
