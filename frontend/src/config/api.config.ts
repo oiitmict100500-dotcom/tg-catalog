@@ -8,7 +8,7 @@ const getApiUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // В development используем относительные пути (проксируется через vite.config.ts)
+  // По умолчанию используем относительные пути (API на том же домене Vercel)
   return '';
 };
 
