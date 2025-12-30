@@ -20,14 +20,14 @@ function TelegramLogin({ onAuth, botName }: TelegramLoginProps) {
     const currentDomain = window.location.hostname;
     const apiBaseUrl = import.meta.env.VITE_API_URL;
     
-    // Предупреждение в production если VITE_API_URL не установлен
-    if (import.meta.env.PROD && !apiBaseUrl) {
-      console.error('⚠️ ВНИМАНИЕ: VITE_API_URL не установлен!');
-      console.error('📖 Установите переменную окружения VITE_API_URL в Vercel:');
-      console.error('   Settings → Environment Variables → Add');
-      console.error('   Name: VITE_API_URL');
-      console.error('   Value: https://ваш-backend-url.com');
-      console.error('📖 Подробная инструкция: НАСТРОЙКА_VERCEL_PRODUCTION.md');
+    // Предупреждение в production если VITE_API_URL не установлен (только если не Vercel)
+    // Для Vercel Serverless Functions это нормально - используются относительные пути
+    if (import.meta.env.PROD && !apiBaseUrl && !currentDomain.includes('vercel.app')) {
+      console.warn('⚠️ ВНИМАНИЕ: VITE_API_URL не установлен!');
+      console.warn('📖 Если backend на другом домене, установите переменную окружения VITE_API_URL в Vercel');
+      console.warn('   Settings → Environment Variables → Add');
+      console.warn('   Name: VITE_API_URL');
+      console.warn('   Value: https://ваш-backend-url.com');
     }
     
     console.log('🔍 TelegramLogin: Initializing...', {

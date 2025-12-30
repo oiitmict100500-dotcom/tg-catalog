@@ -29,14 +29,17 @@ function Home() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string>('');
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
   useEffect(() => {
     loadCategories();
     loadPaidResources();
   }, []);
 
-  // Логирование для диагностики
+  // Логирование для диагностики (только после попытки загрузки)
   useEffect(() => {
+    if (!categoriesLoaded) return; // Не показываем предупреждение до первой попытки загрузки
+    
     if (!Array.isArray(categories) || categories.length === 0) {
       console.warn('⚠️ Категории не загружены! Проверьте API /api/categories');
       console.warn('Categories type:', typeof categories, 'Is array:', Array.isArray(categories));
@@ -49,7 +52,7 @@ function Home() {
       }
     }
     console.log('Paid resources loaded:', Object.keys(paidResources).length);
-  }, [categories, paidResources]);
+  }, [categories, paidResources, categoriesLoaded]);
 
   useEffect(() => {
     loadResources();
