@@ -20,39 +20,115 @@
 
 ## Шаг 2: Настройка VITE_API_URL в Frontend (Vercel)
 
-⚠️ **КРИТИЧЕСКИ ВАЖНО:** `VITE_API_URL` должен указывать на ваш **BACKEND** сервер, а не на frontend!
+### Что такое VITE_API_URL?
 
-### Где развернут ваш Backend?
+`VITE_API_URL` — это адрес вашего **backend сервера** (сервера с API). Frontend (ваш сайт) должен знать, куда отправлять запросы к API.
 
-Если backend развернут на:
-- **Railway**: `https://ваш-проект.railway.app`
-- **Render**: `https://ваш-проект.onrender.com`
-- **Heroku**: `https://ваш-проект.herokuapp.com`
-- **Vercel**: `https://ваш-backend.vercel.app` (если backend тоже на Vercel)
-- **Другой хостинг**: URL вашего backend сервера
+⚠️ **ВАЖНО:** Это должен быть адрес **BACKEND**, а не frontend!
 
-### Настройка в Vercel:
+### Сначала нужно понять: где у вас развернут Backend?
 
-1. Откройте проект frontend в Vercel
-2. Перейдите в **Settings → Environment Variables**
-3. Найдите или добавьте переменную:
-   - **Name:** `VITE_API_URL`
-   - **Value:** `https://ваш-backend-url.com` (БЕЗ слеша в конце!)
-   - **Environment:** Production, Preview, Development (выберите все)
-4. ⚠️ **Удалите** неправильное значение, если там указан frontend домен!
-5. Сохраните и перезапустите deployment
+**Backend** — это серверная часть приложения, которая обрабатывает запросы от сайта.
 
-### Пример правильных значений:
+#### Вариант А: Backend уже развернут
+
+Если вы уже развернули backend на каком-то хостинге, найдите его URL:
+
+**На Railway:**
+1. Откройте https://railway.app
+2. Войдите в свой аккаунт
+3. Откройте проект с backend
+4. Нажмите на сервис (service)
+5. Перейдите в **Settings → Networking**
+6. Скопируйте **Public Domain** (например: `tg-catalog-backend.railway.app`)
+7. Это и есть ваш backend URL!
+
+**На Render:**
+1. Откройте https://render.com
+2. Войдите в свой аккаунт
+3. Откройте проект с backend
+4. Скопируйте URL сервиса (например: `tg-catalog-api.onrender.com`)
+5. Это и есть ваш backend URL!
+
+**На Heroku:**
+1. Откройте https://heroku.com
+2. Войдите в свой аккаунт
+3. Откройте приложение с backend
+4. Перейдите в **Settings**
+5. Скопируйте **Heroku Domain** (например: `tg-catalog-backend.herokuapp.com`)
+6. Это и есть ваш backend URL!
+
+**На Vercel (если backend тоже на Vercel):**
+1. Откройте https://vercel.com
+2. Войдите в свой аккаунт
+3. Откройте проект с backend (это должен быть ОТДЕЛЬНЫЙ проект от frontend!)
+4. Скопируйте URL проекта (например: `tg-catalog-backend.vercel.app`)
+5. Это и есть ваш backend URL!
+
+#### Вариант Б: Backend еще не развернут
+
+Если backend еще не развернут, сначала нужно его развернуть. См. файл `ИСПРАВЛЕНИЕ_ОШИБОК.md` в конце раздела "Если backend еще не развернут".
+
+---
+
+### Теперь настроим VITE_API_URL в Vercel:
+
+1. **Откройте Vercel:**
+   - Перейдите на https://vercel.com
+   - Войдите в свой аккаунт
+
+2. **Откройте проект frontend:**
+   - Найдите проект `tg-catalog` (или как называется ваш frontend проект)
+   - Нажмите на него
+
+3. **Откройте настройки:**
+   - В верхнем меню нажмите **Settings**
+   - В левом меню выберите **Environment Variables**
+
+4. **Найдите или создайте переменную:**
+   - Если переменная `VITE_API_URL` уже есть — нажмите на нее для редактирования
+   - Если нет — нажмите **Add New**
+
+5. **Установите правильное значение:**
+   - **Key (Имя):** `VITE_API_URL`
+   - **Value (Значение):** `https://ваш-backend-url.com` 
+     - ⚠️ Замените `ваш-backend-url.com` на реальный URL вашего backend!
+     - ⚠️ Обязательно добавьте `https://` в начале!
+     - ⚠️ БЕЗ слеша `/` в конце!
+   - **Environment (Окружение):** Выберите все три:
+     - ☑ Production
+     - ☑ Preview  
+     - ☑ Development
+
+6. **Сохраните:**
+   - Нажмите **Save**
+   - Vercel автоматически перезапустит deployment
+
+### Примеры правильных значений:
 
 ✅ **Правильно:**
-- `https://tg-catalog-backend.railway.app`
-- `https://tg-catalog-api.onrender.com`
-- `https://api.yourdomain.com`
+```
+https://tg-catalog-backend.railway.app
+https://tg-catalog-api.onrender.com
+https://api.yourdomain.com
+https://tg-catalog-backend.vercel.app
+```
 
 ❌ **Неправильно:**
-- `tg-catalog-one.vercel.app` (это frontend!)
-- `https://tg-catalog-one.vercel.app` (это frontend!)
-- Любой URL, который ведет на frontend
+```
+tg-catalog-one.vercel.app          ← это frontend, не backend!
+https://tg-catalog-one.vercel.app  ← это frontend, не backend!
+https://tg-catalog-backend.railway.app/  ← лишний слеш в конце
+```
+
+### Как проверить, что все правильно?
+
+После сохранения:
+1. Подождите 1-2 минуты (пока Vercel перезапустит сайт)
+2. Откройте сайт: https://tg-catalog-one.vercel.app
+3. Откройте консоль браузера (F12)
+4. НЕ должно быть ошибки: "VITE_API_URL указывает на frontend домен!"
+5. Если ошибка есть — значит вы указали frontend URL вместо backend URL
 
 ## Шаг 3: Настройка токена в Backend
 
