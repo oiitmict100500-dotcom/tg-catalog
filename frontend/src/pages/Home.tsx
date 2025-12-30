@@ -74,14 +74,17 @@ function Home() {
       if (Array.isArray(data)) {
         setCategories(data);
         setError('');
+        setCategoriesLoaded(true);
       } else {
         console.error('❌ Categories API returned non-array:', data);
         setCategories([]);
         setError('Ошибка: API вернул неверный формат данных');
+        setCategoriesLoaded(true);
       }
     } catch (error: any) {
       console.error('Error loading categories:', error);
       setCategories([]); // Устанавливаем пустой массив при ошибке
+      setCategoriesLoaded(true);
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
         setError('Backend не запущен! Запустите Backend на порту 3000.');
       } else if (error.response?.status === 404) {
