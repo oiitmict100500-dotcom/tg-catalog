@@ -50,6 +50,14 @@
   color: var(--tg-color-text-secondary);
 }
 
+[data-theme="dark"] .pricing-info {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .subtitle {
+  color: #ffffff !important;
+}
+
 .pricing-section {
   background: var(--tg-card-bg);
   border-radius: 16px;
@@ -76,6 +84,15 @@
 .price-label {
   font-size: 1.1rem;
   color: var(--tg-color-text-secondary);
+}
+
+[data-theme="dark"] .price-label {
+  color: #ffffff !important;
+}
+}
+
+[data-theme="dark"] .pricing-info {
+  color: #ffffff !important;
 }
 
 .base-price {
@@ -326,6 +343,15 @@
   padding: 60px;
   font-size: 1.2rem;
   color: var(--tg-color-text-secondary);
+}
+
+[data-theme="dark"] .loading {
+  color: #ffffff !important;
+}
+}
+
+[data-theme="dark"] .pricing-info {
+  color: #ffffff !important;
 }
 
 @media (max-width: 768px) {

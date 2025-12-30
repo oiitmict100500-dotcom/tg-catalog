@@ -473,6 +473,10 @@
   line-height: 1.4;
 }
 
+[data-theme="dark"] .paid-resource-content p {
+  color: #ffffff !important;
+}
+
 .paid-resource-link {
   color: var(--tg-color-primary);
   font-weight: 600;
@@ -566,10 +570,18 @@
   font-style: italic;
 }
 
+[data-theme="dark"] .empty-title {
+  color: #ffffff !important;
+}
+
 .empty-text {
   color: var(--tg-color-text-secondary) !important;
   font-size: 0.85rem;
   font-style: italic;
+}
+
+[data-theme="dark"] .empty-text {
+  color: #ffffff !important;
 }
 
 .empty-link {
@@ -750,6 +762,10 @@
   display: inline-block;
 }
 
+[data-theme="dark"] .resource-category {
+  color: #ffffff !important;
+}
+
 .resource-content h3 {
   margin: 12px 0;
   color: var(--tg-color-text);
@@ -763,6 +779,10 @@
   margin-bottom: 16px;
   flex: 1;
   line-height: 1.5;
+}
+
+[data-theme="dark"] .resource-content p {
+  color: #ffffff !important;
 }
 
 .resource-stats {

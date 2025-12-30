@@ -70,6 +70,10 @@
   color: #333;
 }
 
+[data-theme="dark"] .form-group label {
+  color: #ffffff !important;
+}
+
 .form-group input,
 .form-group textarea {
   padding: 12px 16px;
@@ -95,6 +99,10 @@
 .form-group small {
   color: var(--tg-color-text-secondary);
   font-size: 0.85rem;
+}
+
+[data-theme="dark"] .form-group small {
+  color: #ffffff !important;
 }
 
 .btn-primary {
@@ -125,5 +133,9 @@
   padding: 60px;
   font-size: 1.2rem;
   color: #666;
+}
+
+[data-theme="dark"] .loading {
+  color: #ffffff !important;
 }
 

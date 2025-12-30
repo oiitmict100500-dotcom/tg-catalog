@@ -34,6 +34,10 @@
   margin-bottom: 20px;
 }
 
+[data-theme="dark"] .resource-description {
+  color: #ffffff !important;
+}
+
 .resource-meta {
   display: flex;
   gap: 20px;
@@ -44,6 +48,10 @@
 .resource-meta span {
   color: var(--tg-color-text-secondary);
   font-size: 1rem;
+}
+
+[data-theme="dark"] .resource-meta span {
+  color: #ffffff !important;
 }
 
 .resource-actions {
@@ -152,6 +160,10 @@
 .review-text {
   color: var(--tg-color-text-secondary);
   line-height: 1.5;
+}
+
+[data-theme="dark"] .review-text {
+  color: #ffffff !important;
 }
 
 .loading {
