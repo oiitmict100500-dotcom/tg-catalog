@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getApiEndpoint } from '../config/api.config';
 
-const API_URL = '/api/auth';
+const API_URL = getApiEndpoint('api/auth');
 
 export interface User {
   id: string;
