@@ -53,55 +53,31 @@ async function createResourceFromSubmission(submission) {
     submission.authorUsername || null,
   ];
   
-  console.log('Executing INSERT query for resource:', resourceId);
   const result = await query(insertQuery, insertParams);
-  console.log('INSERT result:', {
-    hasRows: !!result.rows,
-    rowsLength: result.rows?.length,
-    isArray: Array.isArray(result),
-  });
   
   const createdResource = result.rows && result.rows.length > 0 
     ? result.rows[0] 
     : (Array.isArray(result) && result.length > 0 ? result[0] : null);
   
   if (!createdResource) {
-    console.error('Resource creation failed - no result returned');
     throw new Error('Resource creation returned null result');
   }
   
-  console.log('Resource created successfully:', createdResource.id || createdResource.ID);
   return createdResource;
 }
 
 export default async function handler(req, res) {
-  // Логируем ВСЕ запросы в самое начало
-  console.log('='.repeat(50));
-  console.log('📥 MODERATION HANDLER CALLED:', {
-    method: req.method,
-    url: req.url,
-    query: req.query,
-    body: req.body,
-    hasAuth: !!req.headers.authorization,
-    timestamp: new Date().toISOString(),
-  });
-  console.log('='.repeat(50));
-
-  // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
-    console.log('✅ OPTIONS request, returning 200');
     return res.status(200).end();
   }
 
   try {
-    // Проверка авторизации админа
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('❌ No authorization header');
       return res.status(401).json({ message: 'Требуется авторизация' });
     }
 
@@ -110,19 +86,14 @@ export default async function handler(req, res) {
     try {
       const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
       user = decoded;
-      console.log('✅ User decoded:', { id: user.id, username: user.username, role: user.role });
     } catch (e) {
-      console.error('❌ Token decode error:', e.message);
       return res.status(401).json({ message: 'Неверный токен' });
     }
 
-    // Проверка роли админа
     if (user.role !== 'admin') {
-      console.error('❌ User is not admin:', user.role);
       return res.status(403).json({ message: 'Доступ запрещен. Требуются права администратора' });
     }
 
-    // Определяем действие по query параметру или body
     const action = req.query.action || req.body?.action;
 
     // GET /api/moderation?action=pending - получение заявок на модерацию
@@ -160,20 +131,9 @@ export default async function handler(req, res) {
       });
 
       // Создаем ресурс из одобренной заявки
-      let resource;
-      try {
-        console.log('Creating resource from submission:', updated.id);
-        resource = await createResourceFromSubmission(updated);
-        console.log('Resource created:', resource?.id || resource?.ID);
-      } catch (createError) {
-        console.error('❌ Error creating resource:', createError);
-        return res.status(500).json({ 
-          message: 'Ошибка при создании ресурса: ' + createError.message,
-        });
-      }
+      const resource = await createResourceFromSubmission(updated);
       
       if (!resource) {
-        console.error('Resource creation returned null');
         return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
       }
 
