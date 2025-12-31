@@ -125,12 +125,18 @@ export default async function handler(req, res) {
     method: req.method,
     query: req.query,
     url: req.url,
+    category: req.query.category,
+    page: req.query.page,
   });
 
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Отключаем кэширование для диагностики
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   if (req.method === 'OPTIONS') {
     console.log('✅ OPTIONS request, returning 200');
