@@ -33,32 +33,54 @@ async function createResourceFromSubmission(submission) {
       resourceId,
       title: submission.title,
       categoryId: submission.categoryId,
+      subcategoryId: submission.subcategoryId,
       authorId: authorId,
       authorUsername: submission.authorUsername,
+      hasTelegramLink: !!submission.telegramLink,
+      hasTelegramUsername: !!submission.telegramUsername,
+      isPrivate: submission.isPrivate || false,
+      hasCoverImage: !!submission.coverImage,
     });
+    
+    // Проверяем, что все обязательные поля есть
+    if (!submission.title || !submission.categoryId) {
+      console.error('❌ Missing required fields:', {
+        hasTitle: !!submission.title,
+        hasCategoryId: !!submission.categoryId,
+      });
+      throw new Error('Missing required fields: title or categoryId');
+    }
     
     const insertQuery = `
       INSERT INTO resources (
         id, title, description, telegram_link, telegram_username,
         category_id, subcategory_id, cover_image, is_private,
-        author_id, author_username
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        author_id, author_username, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     
-    const result = await query(insertQuery, [
+    const insertParams = [
       resourceId,
       submission.title,
       submission.description || '',
       submission.telegramLink || null,
       submission.telegramUsername || null,
       submission.categoryId,
-      submission.subcategoryId,
-      submission.coverImage,
+      submission.subcategoryId || null,
+      submission.coverImage || null,
       submission.isPrivate || false,
       authorId,
-      submission.authorUsername,
-    ]);
+      submission.authorUsername || null,
+    ];
+    
+    console.log('🔍 Executing insert query with params:', {
+      paramCount: insertParams.length,
+      title: insertParams[1],
+      categoryId: insertParams[5],
+    });
+    
+    const result = await query(insertQuery, insertParams);
     
     const createdResource = result.rows && result.rows.length > 0 
       ? result.rows[0] 
@@ -70,9 +92,27 @@ async function createResourceFromSubmission(submission) {
         title: createdResource.title || createdResource.TITLE,
         categoryId: createdResource.category_id || createdResource.CATEGORY_ID,
         authorId: createdResource.author_id || createdResource.AUTHOR_ID,
+        createdAt: createdResource.created_at || createdResource.CREATED_AT,
       });
+      
+      // Проверяем, что ресурс действительно в базе
+      const { query: verifyQuery } = await import('../db.js');
+      const verifyResult = await verifyQuery('SELECT * FROM resources WHERE id = $1', [resourceId]);
+      const verified = verifyResult.rows ? verifyResult.rows[0] : (Array.isArray(verifyResult) ? verifyResult[0] : null);
+      
+      if (verified) {
+        console.log('✅ Resource verified in database');
+      } else {
+        console.error('❌ Resource not found in database after creation!');
+      }
     } else {
       console.error('❌ Resource creation returned null result');
+      console.error('Query result:', {
+        hasRows: !!result.rows,
+        rowsLength: result.rows?.length,
+        isArray: Array.isArray(result),
+        resultLength: Array.isArray(result) ? result.length : 0,
+      });
     }
     
     return createdResource;
@@ -80,6 +120,7 @@ async function createResourceFromSubmission(submission) {
     console.error('❌ Error creating resource from submission:', error);
     console.error('Error details:', {
       message: error.message,
+      code: error.code,
       stack: error.stack,
       submission: {
         id: submission.id,
@@ -88,7 +129,7 @@ async function createResourceFromSubmission(submission) {
         authorId: submission.authorId,
       },
     });
-    return null;
+    throw error; // Пробрасываем ошибку дальше
   }
 }
 
@@ -187,16 +228,38 @@ export default async function handler(req, res) {
       });
 
       // Создаем ресурс из одобренной заявки
-      const resource = await createResourceFromSubmission(updated);
+      console.log('🔨 Starting resource creation from submission:', {
+        submissionId: updated.id,
+        title: updated.title,
+        categoryId: updated.categoryId,
+      });
+      
+      let resource;
+      try {
+        resource = await createResourceFromSubmission(updated);
+      } catch (createError) {
+        console.error('❌ Error during resource creation:', createError);
+        return res.status(500).json({ 
+          message: 'Ошибка при создании ресурса: ' + createError.message,
+          error: process.env.NODE_ENV === 'development' ? createError.stack : undefined,
+        });
+      }
       
       if (!resource) {
         console.error('❌ Failed to create resource from approved submission');
+        console.error('Submission data:', {
+          id: updated.id,
+          title: updated.title,
+          categoryId: updated.categoryId,
+          authorId: updated.authorId,
+        });
         return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
       }
 
       console.log('✅ Resource created from approved submission:', {
         resourceId: resource.id || resource.ID,
         submissionId: updated.id,
+        title: resource.title || resource.TITLE,
       });
 
       return res.status(200).json({
