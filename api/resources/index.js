@@ -215,6 +215,18 @@ export default async function handler(req, res) {
       }
     }
 
+    console.log('📤 Sending response:', {
+      resourcesCount: mappedResources.length,
+      total: total,
+      page: result.page,
+      totalPages: result.totalPages,
+      firstResource: mappedResources[0] ? {
+        id: mappedResources[0].id,
+        title: mappedResources[0].title,
+        categoryId: mappedResources[0].categoryId,
+      } : null,
+    });
+    
     return res.status(200).json({
       resources: mappedResources,
       data: mappedResources, // Для совместимости
