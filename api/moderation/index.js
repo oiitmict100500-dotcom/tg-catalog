@@ -168,13 +168,17 @@ async function createResourceFromSubmission(submission) {
 }
 
 export default async function handler(req, res) {
-  console.log('📥 Moderation request received:', {
+  // Логируем ВСЕ запросы в самое начало
+  console.log('='.repeat(50));
+  console.log('📥 MODERATION HANDLER CALLED:', {
     method: req.method,
     url: req.url,
     query: req.query,
     body: req.body,
     hasAuth: !!req.headers.authorization,
+    timestamp: new Date().toISOString(),
   });
+  console.log('='.repeat(50));
 
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
