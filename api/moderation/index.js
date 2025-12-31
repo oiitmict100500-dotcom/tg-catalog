@@ -262,6 +262,14 @@ export default async function handler(req, res) {
       console.log('✅ Submission updated:', {
         id: updated.id,
         status: updated.status,
+        title: updated.title,
+        categoryId: updated.categoryId,
+        subcategoryId: updated.subcategoryId,
+        authorId: updated.authorId,
+        hasTelegramLink: !!updated.telegramLink,
+        hasTelegramUsername: !!updated.telegramUsername,
+        hasCoverImage: !!updated.coverImage,
+        fullData: JSON.stringify(updated, null, 2),
       });
 
       // Создаем ресурс из одобренной заявки
@@ -269,13 +277,38 @@ export default async function handler(req, res) {
         submissionId: updated.id,
         title: updated.title,
         categoryId: updated.categoryId,
+        subcategoryId: updated.subcategoryId,
+        authorId: updated.authorId,
       });
       
       let resource;
       try {
+        // Убеждаемся, что все данные на месте перед созданием ресурса
+        if (!updated.title) {
+          throw new Error('Submission missing title');
+        }
+        if (!updated.categoryId) {
+          throw new Error('Submission missing categoryId');
+        }
+        if (!updated.authorId) {
+          throw new Error('Submission missing authorId');
+        }
+        
+        console.log('✅ All required fields present, calling createResourceFromSubmission...');
         resource = await createResourceFromSubmission(updated);
+        console.log('✅ createResourceFromSubmission returned:', {
+          hasResource: !!resource,
+          resourceId: resource?.id || resource?.ID,
+        });
       } catch (createError) {
         console.error('❌ Error during resource creation:', createError);
+        console.error('Error stack:', createError.stack);
+        console.error('Submission data that failed:', {
+          id: updated.id,
+          title: updated.title,
+          categoryId: updated.categoryId,
+          authorId: updated.authorId,
+        });
         return res.status(500).json({ 
           message: 'Ошибка при создании ресурса: ' + createError.message,
           error: process.env.NODE_ENV === 'development' ? createError.stack : undefined,
