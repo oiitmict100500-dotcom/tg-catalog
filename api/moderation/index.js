@@ -247,6 +247,14 @@ export default async function handler(req, res) {
     }
 
     // POST /api/moderation с action=approve - одобрение заявки
+    console.log('🔍 Checking approve condition:', {
+      method: req.method,
+      action: action,
+      isPost: req.method === 'POST',
+      isApprove: action === 'approve',
+      willExecute: req.method === 'POST' && action === 'approve',
+    });
+    
     if (req.method === 'POST' && action === 'approve') {
       console.log('🔨 APPROVE REQUEST RECEIVED:', {
         submissionId: req.body.submissionId,
