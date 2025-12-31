@@ -128,12 +128,24 @@ export default async function handler(req, res) {
 
     // GET /api/moderation?action=pending - получение заявок на модерацию
     if (req.method === 'GET' && (!action || action === 'pending')) {
+      console.log('📋 Loading pending submissions...');
       const pendingSubmissions = await getPendingSubmissions();
       
       console.log('📋 Pending submissions result:', {
         count: pendingSubmissions.length,
         ids: pendingSubmissions.map(s => s.id),
+        titles: pendingSubmissions.map(s => s.title),
       });
+
+      // Также проверяем все ресурсы в базе для диагностики
+      try {
+        const { query } = await import('../db.js');
+        const allResources = await query('SELECT COUNT(*) as total FROM resources');
+        const resourceCount = allResources.rows ? allResources.rows[0].total : (Array.isArray(allResources) ? allResources[0]?.total : 0);
+        console.log('📊 Total resources in database:', resourceCount);
+      } catch (e) {
+        console.error('Error checking resources count:', e);
+      }
 
       return res.status(200).json({
         submissions: pendingSubmissions,
