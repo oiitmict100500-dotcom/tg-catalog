@@ -1,14 +1,28 @@
 // Модуль для подключения к PostgreSQL
 // Поддерживает Vercel Postgres (@vercel/postgres) и внешние PostgreSQL базы данных (pg)
 
-let dbType = null; // 'vercel' или 'pg'
+// Подавляем предупреждение url.parse() из библиотеки pg (не критично, но мешает в логах)
+if (typeof process !== 'undefined' && process.on) {
+  process.on('warning', (warning) => {
+    if (warning.name === 'DeprecationWarning' && warning.message && warning.message.includes('url.parse()')) {
+      return; // Игнорируем это предупреждение (это внутренняя проблема библиотеки pg)
+    }
+    // Другие предупреждения оставляем как есть
+  });
+}
+
 let pgPool = null;
-let vercelSql = null;
 
 // Инициализация подключения к базе данных
+let dbInitialized = false;
 async function initDatabase() {
-  if (dbType !== null) {
+  if (dbInitialized && pgPool) {
     return; // Уже инициализировано
+  }
+  
+  if (pgPool) {
+    dbInitialized = true;
+    return;
   }
 
   console.log('🔧 Initializing database connection...');
@@ -30,30 +44,8 @@ async function initDatabase() {
       throw new Error('No database connection string found. Set DATABASE_URL or POSTGRES_URL environment variable.');
     }
 
-    // Проверяем, это Vercel Postgres или внешняя база
-    const isVercelPostgres = process.env.POSTGRES_URL && !process.env.DATABASE_URL && 
-                             (connectionString.includes('vercel') || connectionString.includes('@vercel'));
-    
-    if (isVercelPostgres) {
-      // Пробуем использовать @vercel/postgres только если это действительно Vercel Postgres
-      try {
-        console.log('🔍 Trying Vercel Postgres (@vercel/postgres)...');
-        const postgres = await import('@vercel/postgres');
-        vercelSql = postgres.sql;
-        dbType = 'vercel';
-        console.log('✅ Using Vercel Postgres (@vercel/postgres)');
-        
-        // Проверяем подключение
-        await vercelSql`SELECT 1`;
-        console.log('✅ Vercel Postgres connection verified');
-        return;
-      } catch (e) {
-        console.warn('⚠️ @vercel/postgres failed, falling back to pg...', e.message);
-        // Продолжаем с pg
-      }
-    }
-
-    // Используем обычный PostgreSQL через pg (Neon, Supabase, или любой другой PostgreSQL)
+    // Используем pg библиотеку для всех PostgreSQL подключений
+    // Это работает одинаково для Vercel Postgres, Neon, Supabase и любых других PostgreSQL баз
     console.log('🔍 Using PostgreSQL via pg...');
     console.log('🔍 Connection string source:', process.env.DATABASE_URL ? 'DATABASE_URL' : 'POSTGRES_URL');
     console.log('🔍 Connection string preview:', connectionString ? connectionString.substring(0, 30) + '...' : 'MISSING');
@@ -71,8 +63,11 @@ async function initDatabase() {
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : 
            needsSSL ? { rejectUnauthorized: false } :
            false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
     });
-    dbType = 'pg';
+    dbInitialized = true;
     console.log('✅ Created PostgreSQL pool (SSL:', needsSSL ? 'enabled' : 'disabled', ')');
     
     // Проверяем подключение
@@ -80,10 +75,6 @@ async function initDatabase() {
     await pgPool.query('SELECT 1');
     console.log('✅ PostgreSQL connection verified');
     return;
-
-    const errorMsg = 'No database connection string found. Set POSTGRES_URL (for Vercel Postgres) or DATABASE_URL (for external PostgreSQL) environment variable.';
-    console.error('❌ ' + errorMsg);
-    throw new Error(errorMsg);
   } catch (error) {
     console.error('❌ Database initialization error:', error);
     console.error('Error details:', {
@@ -96,53 +87,22 @@ async function initDatabase() {
 }
 
 // Выполнение SQL запроса
+// Использует только pg библиотеку для всех PostgreSQL подключений
 export async function query(text, params) {
   await initDatabase();
 
+  if (!pgPool) {
+    throw new Error('Database pool not initialized');
+  }
+
   try {
-    if (dbType === 'vercel' && vercelSql) {
-      // Vercel Postgres использует template literals для параметризованных запросов
-      // Преобразуем стандартные параметры $1, $2 в безопасный запрос
-      if (params && params.length > 0) {
-        // Используем sql.unsafe для выполнения запроса с экранированием параметров
-        let queryText = text;
-        params.forEach((param, index) => {
-          const placeholder = `$${index + 1}`;
-          let value;
-          if (param === null || param === undefined) {
-            value = 'NULL';
-          } else if (typeof param === 'string') {
-            // Экранируем строки для SQL
-            value = `'${param.replace(/'/g, "''").replace(/\\/g, "\\\\")}'`;
-          } else if (typeof param === 'boolean') {
-            value = param ? 'TRUE' : 'FALSE';
-          } else if (param instanceof Date) {
-            value = `'${param.toISOString()}'`;
-          } else {
-            value = String(param);
-          }
-          // Заменяем только первое вхождение каждого плейсхолдера
-          queryText = queryText.replace(placeholder, value);
-        });
-        
-        // Используем sql.unsafe для выполнения запроса
-        const result = await vercelSql.unsafe(queryText);
-        return { rows: Array.isArray(result) ? result : (result.rows || []) };
-      } else {
-        const result = await vercelSql.unsafe(text);
-        return { rows: Array.isArray(result) ? result : (result.rows || []) };
-      }
-    } else if (dbType === 'pg' && pgPool) {
-      // Обычный PostgreSQL через pg
-      return await pgPool.query(text, params);
-    } else {
-      throw new Error('Database not initialized');
-    }
+    return await pgPool.query(text, params);
   } catch (error) {
     console.error('❌ Query error:', error);
-    console.error('Query:', text);
+    console.error('Query:', text.substring(0, 200));
     console.error('Params:', params);
-    console.error('DB Type:', dbType);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
     throw error;
   }
 }
@@ -245,23 +205,53 @@ export async function initTables() {
       // Игнорируем ошибку
     }
     
-    // Добавляем поле status, если его нет
+    // Добавляем поле status, если его нет (PostgreSQL не поддерживает IF NOT EXISTS для ALTER TABLE)
     try {
-      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`);
-      // Обновляем существующие записи без статуса
-      await query(`UPDATE resources SET status = 'approved' WHERE status IS NULL`);
+      // Проверяем, существует ли колонка
+      const checkColumn = await query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'resources' AND column_name = 'status'
+      `);
+      
+      if (!checkColumn.rows || checkColumn.rows.length === 0) {
+        // Колонки нет, добавляем
+        await query(`ALTER TABLE resources ADD COLUMN status VARCHAR(50) DEFAULT 'pending'`);
+        console.log('✅ Added status column to resources table');
+        // Обновляем существующие записи без статуса
+        await query(`UPDATE resources SET status = 'approved' WHERE status IS NULL`);
+        console.log('✅ Updated existing resources to approved status');
+      } else {
+        console.log('✅ Status column already exists');
+      }
     } catch (e) {
-      // Игнорируем ошибку
+      console.warn('⚠️ Could not add status column (may already exist):', e.message);
+      // Игнорируем ошибку, колонка может уже существовать
     }
     
     // Добавляем поля модерации, если их нет
-    try {
-      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS moderated_by_id VARCHAR(255)`);
-      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS moderated_by VARCHAR(255)`);
-      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS moderated_at TIMESTAMP`);
-      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
-    } catch (e) {
-      // Игнорируем ошибку
+    const moderationColumns = [
+      { name: 'moderated_by_id', type: 'VARCHAR(255)' },
+      { name: 'moderated_by', type: 'VARCHAR(255)' },
+      { name: 'moderated_at', type: 'TIMESTAMP' },
+      { name: 'rejection_reason', type: 'TEXT' },
+    ];
+    
+    for (const col of moderationColumns) {
+      try {
+        const checkColumn = await query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'resources' AND column_name = $1
+        `, [col.name]);
+        
+        if (!checkColumn.rows || checkColumn.rows.length === 0) {
+          await query(`ALTER TABLE resources ADD COLUMN ${col.name} ${col.type}`);
+          console.log(`✅ Added ${col.name} column to resources table`);
+        }
+      } catch (e) {
+        console.warn(`⚠️ Could not add ${col.name} column:`, e.message);
+      }
     }
     
     // Создаем индексы, если их нет
@@ -286,8 +276,7 @@ export async function closePool() {
       await pgPool.end();
     }
     pgPool = null;
-    dbType = null;
-    vercelSql = null;
+    dbInitialized = false;
     console.log('✅ Database connection closed');
   }
 }
