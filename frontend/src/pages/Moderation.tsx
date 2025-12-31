@@ -33,6 +33,8 @@ function Moderation() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [editingResource, setEditingResource] = useState<any>(null);
+  const [approvedResources, setApprovedResources] = useState<Record<string, any>>({});
 
   useEffect(() => {
     console.log('🔍 Moderation: Component mounted, checking admin access...');
@@ -132,6 +134,18 @@ function Moderation() {
         }
       );
       alert('Заявка одобрена!');
+      // Загружаем созданный ресурс для возможности редактирования
+      if (response.data.resource?.id) {
+        try {
+          const resourceResponse = await axios.get(`/api/resources/${response.data.resource.id}`);
+          setApprovedResources(prev => ({
+            ...prev,
+            [submissionId]: resourceResponse.data,
+          }));
+        } catch (e) {
+          console.error('Error loading approved resource:', e);
+        }
+      }
       loadSubmissions();
     } catch (error: any) {
       console.error('Error approving submission:', error);
@@ -303,6 +317,24 @@ function Moderation() {
                       {rejectingId === submission.id ? 'Отклонение...' : '❌ Отклонить'}
                     </button>
                   </div>
+                  {approvedResources[submission.id] && (
+                    <button
+                      onClick={() => setEditingResource(approvedResources[submission.id])}
+                      className="btn-edit"
+                      style={{
+                        marginTop: '10px',
+                        padding: '8px 16px',
+                        background: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        width: '100%',
+                      }}
+                    >
+                      ✏️ Редактировать ресурс
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
