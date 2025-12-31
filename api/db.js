@@ -64,26 +64,9 @@ export async function query(text, params) {
   try {
     if (dbType === 'vercel' && vercelSql) {
       // Vercel Postgres использует template literals для параметризованных запросов
-      // Преобразуем стандартные параметры в template literal
+      // Преобразуем стандартные параметры $1, $2 в безопасный запрос
       if (params && params.length > 0) {
-        // Создаем функцию, которая будет использовать параметры
-        const parts = text.split(/\$\d+/);
-        const paramValues = [];
-        
-        // Извлекаем параметры из запроса
-        const paramMatches = text.match(/\$\d+/g) || [];
-        paramMatches.forEach((match, index) => {
-          const paramIndex = parseInt(match.substring(1)) - 1;
-          if (paramIndex < params.length) {
-            paramValues.push(params[paramIndex]);
-          }
-        });
-
-        // Строим template literal для Vercel Postgres
-        // Vercel Postgres использует sql`SELECT * FROM table WHERE id = ${value}`
-        // Но нам нужно преобразовать $1, $2 в template literal
-        
-        // Простой способ: используем sql.unsafe для прямого запроса с экранированием
+        // Используем sql.unsafe для выполнения запроса с экранированием параметров
         let queryText = text;
         params.forEach((param, index) => {
           const placeholder = `$${index + 1}`;
@@ -91,23 +74,25 @@ export async function query(text, params) {
           if (param === null || param === undefined) {
             value = 'NULL';
           } else if (typeof param === 'string') {
-            // Экранируем строки
-            value = `'${param.replace(/'/g, "''")}'`;
+            // Экранируем строки для SQL
+            value = `'${param.replace(/'/g, "''").replace(/\\/g, "\\\\")}'`;
           } else if (typeof param === 'boolean') {
             value = param ? 'TRUE' : 'FALSE';
+          } else if (param instanceof Date) {
+            value = `'${param.toISOString()}'`;
           } else {
             value = String(param);
           }
+          // Заменяем только первое вхождение каждого плейсхолдера
           queryText = queryText.replace(placeholder, value);
         });
         
         // Используем sql.unsafe для выполнения запроса
-        const { sql } = await import('@vercel/postgres');
-        const result = await sql.unsafe(queryText);
-        return { rows: result.rows || result || [] };
+        const result = await vercelSql.unsafe(queryText);
+        return { rows: Array.isArray(result) ? result : (result.rows || []) };
       } else {
         const result = await vercelSql.unsafe(text);
-        return { rows: result.rows || result || [] };
+        return { rows: Array.isArray(result) ? result : (result.rows || []) };
       }
     } else if (dbType === 'pg' && pgPool) {
       // Обычный PostgreSQL через pg
