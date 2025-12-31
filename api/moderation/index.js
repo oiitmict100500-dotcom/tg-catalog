@@ -131,20 +131,27 @@ export default async function handler(req, res) {
       });
 
       // Создаем ресурс из одобренной заявки
-      const resource = await createResourceFromSubmission(updated);
-      
-      if (!resource) {
-        return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
-      }
+      try {
+        const resource = await createResourceFromSubmission(updated);
+        
+        if (!resource) {
+          return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
+        }
 
-      return res.status(200).json({
-        message: 'Заявка одобрена и ресурс создан',
-        submission: updated,
-        resource: {
-          id: resource.id || resource.ID,
-          title: resource.title || resource.TITLE,
-        },
-      });
+        return res.status(200).json({
+          message: 'Заявка одобрена и ресурс создан',
+          submission: updated,
+          resource: {
+            id: resource.id || resource.ID,
+            title: resource.title || resource.TITLE,
+          },
+        });
+      } catch (error) {
+        console.error('Error creating resource:', error);
+        return res.status(500).json({ 
+          message: 'Ошибка при создании ресурса: ' + error.message 
+        });
+      }
     }
 
     // POST /api/moderation с action=reject - отклонение заявки
