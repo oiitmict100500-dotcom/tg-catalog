@@ -126,6 +126,7 @@ function Home() {
   const loadResources = async () => {
     if (!selectedCategory) {
       setLoading(false);
+      setResources([]);
       return;
     }
     
@@ -144,12 +145,40 @@ function Home() {
           console.error('Error finding category:', findError);
         }
       }
+      
+      console.log('📤 Loading resources with params:', params);
       const response = await axios.get('/api/resources', { params });
-      setResources(response.data?.data || []);
+      
+      console.log('📥 Resources API response:', {
+        status: response.status,
+        hasData: !!response.data,
+        hasResources: !!response.data?.resources,
+        hasDataField: !!response.data?.data,
+        resourcesCount: response.data?.resources?.length || response.data?.data?.length || 0,
+        responseKeys: Object.keys(response.data || {}),
+      });
+      
+      // Поддерживаем оба формата ответа
+      const resources = response.data?.resources || response.data?.data || [];
+      setResources(resources);
       setTotalPages(response.data?.totalPages || 1);
       setError('');
+      
+      if (resources.length === 0) {
+        console.warn('⚠️ No resources returned for category:', selectedCategory);
+      } else {
+        console.log('✅ Resources loaded:', resources.length);
+      }
     } catch (error: any) {
-      console.error('Error loading resources:', error);
+      console.error('❌ Error loading resources:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+      
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
         setError('Backend не запущен! Запустите Backend на порту 3000.');
       } else {

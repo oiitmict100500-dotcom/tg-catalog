@@ -183,8 +183,9 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      data: result.resources,
-      total: result.total,
+      resources: mappedResources,
+      data: mappedResources, // Для совместимости
+      total: total,
       page: result.page,
       totalPages: result.totalPages,
     });
