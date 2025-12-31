@@ -153,6 +153,8 @@ export default async function handler(req, res) {
       count: result.resources.length,
       total: result.total,
       page: result.page,
+      resourceIds: result.resources.map((r: any) => r.id),
+      resourceTitles: result.resources.map((r: any) => r.title),
     });
 
     return res.status(200).json({

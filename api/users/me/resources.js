@@ -35,14 +35,40 @@ export default async function handler(req, res) {
     }
 
     // Получаем ресурсы пользователя
-    const resources = await getUserResources(user.id.toString());
+    const userId = String(user.id);
+    const resources = await getUserResources(userId);
 
     console.log('📋 User resources:', {
-      userId: user.id,
+      userId: userId,
+      userRawId: user.id,
       count: resources.length,
+      resourceIds: resources.map(r => r.id),
+      resourceTitles: resources.map(r => r.title),
     });
 
-    return res.status(200).json(resources);
+    // Преобразуем ресурсы для фронтенда
+    const mappedResources = resources.map((resource: any) => {
+      const categoryId = resource.categoryId;
+      const categoryMap: Record<string, { type: string; name: string }> = {
+        '1': { type: 'channel', name: 'Каналы' },
+        '2': { type: 'group', name: 'Группы' },
+        '3': { type: 'bot', name: 'Боты' },
+        '4': { type: 'sticker', name: 'Стикерпаки' },
+        '5': { type: 'emoji', name: 'Эмодзипаки' },
+      };
+      const categoryInfo = categoryMap[categoryId] || { type: 'other', name: 'Другое' };
+      
+      return {
+        ...resource,
+        category: {
+          id: categoryId,
+          ...categoryInfo,
+        },
+        isPublished: true, // Все ресурсы из БД считаются опубликованными
+      };
+    });
+
+    return res.status(200).json(mappedResources);
   } catch (error) {
     console.error('Error loading user resources:', error);
     return res.status(500).json({ message: 'Ошибка при загрузке ресурсов' });

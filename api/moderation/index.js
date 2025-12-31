@@ -26,6 +26,17 @@ async function createResourceFromSubmission(submission) {
     
     const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
+    // Убеждаемся, что authorId - строка
+    const authorId = String(submission.authorId || '');
+    
+    console.log('🔨 Creating resource from submission:', {
+      resourceId,
+      title: submission.title,
+      categoryId: submission.categoryId,
+      authorId: authorId,
+      authorUsername: submission.authorUsername,
+    });
+    
     const insertQuery = `
       INSERT INTO resources (
         id, title, description, telegram_link, telegram_username,
@@ -45,21 +56,38 @@ async function createResourceFromSubmission(submission) {
       submission.subcategoryId,
       submission.coverImage,
       submission.isPrivate || false,
-      submission.authorId,
+      authorId,
       submission.authorUsername,
     ]);
     
-    if (result.rows && result.rows.length > 0) {
-      return result.rows[0];
+    const createdResource = result.rows && result.rows.length > 0 
+      ? result.rows[0] 
+      : (Array.isArray(result) && result.length > 0 ? result[0] : null);
+    
+    if (createdResource) {
+      console.log('✅ Resource created successfully:', {
+        id: createdResource.id || createdResource.ID,
+        title: createdResource.title || createdResource.TITLE,
+        categoryId: createdResource.category_id || createdResource.CATEGORY_ID,
+        authorId: createdResource.author_id || createdResource.AUTHOR_ID,
+      });
+    } else {
+      console.error('❌ Resource creation returned null result');
     }
     
-    if (Array.isArray(result) && result.length > 0) {
-      return result[0];
-    }
-    
-    return null;
+    return createdResource;
   } catch (error) {
     console.error('❌ Error creating resource from submission:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      submission: {
+        id: submission.id,
+        title: submission.title,
+        categoryId: submission.categoryId,
+        authorId: submission.authorId,
+      },
+    });
     return null;
   }
 }
