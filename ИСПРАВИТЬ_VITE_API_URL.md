@@ -105,3 +105,4 @@ https://tg-catalog-backend.railway.app/                 ← лишний сле�
 - Frontend URL: `tg-catalog-one.vercel.app` или `tg-catalog-git-main-*.vercel.app`
 - Backend URL: должен быть на другом домене (Railway, Render, Heroku) или другом проекте Vercel
 
+

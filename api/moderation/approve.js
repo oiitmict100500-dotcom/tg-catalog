@@ -1,7 +1,8 @@
 // API endpoint для одобрения заявки на модерацию
 // Vercel Serverless Function
+// Использует PostgreSQL для хранения заявок
 
-import { getSubmissionById, updateSubmission } from './shared-storage.js';
+import { getSubmissionById, updateSubmission } from './db-storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
     }
 
     // Получаем заявку
-    const submission = getSubmissionById(submissionId);
+    const submission = await getSubmissionById(submissionId);
 
     if (!submission) {
       return res.status(404).json({ message: 'Заявка не найдена' });
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
     }
 
     // Обновляем статус заявки
-    const updated = updateSubmission(submissionId, {
+    const updated = await updateSubmission(submissionId, {
       status: 'approved',
       moderatedById: user.id,
       moderatedBy: user.username,

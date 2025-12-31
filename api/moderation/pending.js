@@ -1,6 +1,7 @@
 // API endpoint для получения заявок на модерацию
 // Vercel Serverless Function
-import { getPendingSubmissions, loadSubmissions, getStorageInfo } from './shared-storage.js';
+// Использует PostgreSQL для хранения заявок
+import { getPendingSubmissions, loadSubmissions, getStorageInfo } from './db-storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -38,12 +39,12 @@ export default async function handler(req, res) {
     }
 
     // Получаем информацию о хранилище
-    const storageInfo = getStorageInfo();
-    console.log('📊 Storage info:', storageInfo);
+    const storageInfo = await getStorageInfo();
+    console.log('📊 Storage info (PostgreSQL):', storageInfo);
     
     // Загружаем все заявки
-    const allSubmissions = loadSubmissions();
-    console.log('📋 All submissions:', {
+    const allSubmissions = await loadSubmissions();
+    console.log('📋 All submissions (PostgreSQL):', {
       total: allSubmissions.length,
       ids: allSubmissions.map(s => s.id),
       titles: allSubmissions.map(s => s.title),
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
     });
     
     // Загружаем заявки на модерацию
-    const pendingSubmissions = getPendingSubmissions();
+    const pendingSubmissions = await getPendingSubmissions();
     
     console.log('📋 Pending submissions result:', {
       count: pendingSubmissions.length,
@@ -83,5 +84,5 @@ export default async function handler(req, res) {
 }
 
 // Экспортируем функции для доступа из других модулей
-export { addSubmission, getSubmissionById, updateSubmission } from './shared-storage.js';
+export { addSubmission, getSubmissionById, updateSubmission } from './db-storage.js';
 

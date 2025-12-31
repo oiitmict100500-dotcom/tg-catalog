@@ -1,6 +1,7 @@
 // API endpoint для отправки ресурса на модерацию
 // Vercel Serverless Function
-import { addSubmission, getStorageInfo } from '../moderation/shared-storage.js';
+// Использует PostgreSQL для хранения заявок
+import { addSubmission, getStorageInfo } from '../moderation/db-storage.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -132,38 +133,40 @@ export default async function handler(req, res) {
       createdAt: new Date().toISOString(),
     };
 
-    // Сохраняем заявку в систему модерации
-    console.log('💾 Attempting to save submission:', {
+    // Сохраняем заявку в систему модерации (PostgreSQL)
+    console.log('💾 Attempting to save submission to PostgreSQL:', {
       id: submission.id,
       title: submission.title,
-      storageInfo: getStorageInfo(),
     });
     
     try {
-      const savedSubmission = addSubmission(submission);
+      const savedSubmission = await addSubmission(submission);
       
       // Проверяем, что заявка действительно сохранилась
-      const { getPendingSubmissions } = await import('../moderation/shared-storage.js');
-      const pendingAfterSave = getPendingSubmissions();
+      const { getPendingSubmissions } = await import('../moderation/db-storage.js');
+      const pendingAfterSave = await getPendingSubmissions();
       const found = pendingAfterSave.find(s => s.id === submission.id);
       
-      console.log('✅ Submission save result:', {
+      const storageInfo = await getStorageInfo();
+      
+      console.log('✅ Submission save result (PostgreSQL):', {
         id: savedSubmission.id,
         title: savedSubmission.title,
         status: savedSubmission.status,
         foundInPending: !!found,
         totalPending: pendingAfterSave.length,
-        storageInfo: getStorageInfo(),
+        storageInfo,
       });
       
       if (!found) {
         console.error('❌ WARNING: Submission was saved but not found in pending list!');
-        console.error('This indicates a storage synchronization issue.');
+        console.error('This may indicate a database query issue.');
       }
     } catch (error) {
-      console.error('❌ Error saving submission:', error);
+      console.error('❌ Error saving submission to PostgreSQL:', error);
       console.error('Error stack:', error.stack);
       // Продолжаем выполнение, даже если сохранение не удалось
+      // В продакшене здесь можно добавить fallback или уведомление
     }
 
     return res.status(200).json({ 
