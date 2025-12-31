@@ -204,27 +204,50 @@ export default async function handler(req, res) {
 
     // POST /api/moderation с action=approve - одобрение заявки
     if (req.method === 'POST' && action === 'approve') {
+      console.log('🔨 APPROVE REQUEST RECEIVED:', {
+        submissionId: req.body.submissionId,
+        action: action,
+        body: req.body,
+      });
+
       const { submissionId } = req.body;
 
       if (!submissionId) {
+        console.error('❌ No submissionId provided');
         return res.status(400).json({ message: 'Укажите ID заявки' });
       }
 
+      console.log('🔍 Fetching submission:', submissionId);
       const submission = await getSubmissionById(submissionId);
 
       if (!submission) {
+        console.error('❌ Submission not found:', submissionId);
         return res.status(404).json({ message: 'Заявка не найдена' });
       }
 
+      console.log('🔍 Submission found:', {
+        id: submission.id,
+        title: submission.title,
+        status: submission.status,
+        categoryId: submission.categoryId,
+      });
+
       if (submission.status !== 'pending') {
+        console.warn('⚠️ Submission already processed:', submission.status);
         return res.status(400).json({ message: 'Заявка уже обработана' });
       }
 
+      console.log('📝 Updating submission status to approved...');
       const updated = await updateSubmission(submissionId, {
         status: 'approved',
         moderatedById: user.id,
         moderatedBy: user.username,
         moderatedAt: new Date().toISOString(),
+      });
+      
+      console.log('✅ Submission updated:', {
+        id: updated.id,
+        status: updated.status,
       });
 
       // Создаем ресурс из одобренной заявки
