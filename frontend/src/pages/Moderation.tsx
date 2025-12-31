@@ -122,8 +122,8 @@ function Moderation() {
     try {
       const token = authService.getToken();
       await axios.post(
-        '/api/moderation/approve',
-        { submissionId },
+        '/api/moderation',
+        { action: 'approve', submissionId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -154,8 +154,8 @@ function Moderation() {
     try {
       const token = authService.getToken();
       await axios.post(
-        '/api/moderation/reject',
-        { submissionId, reason: rejectReason },
+        '/api/moderation',
+        { action: 'reject', submissionId, reason: rejectReason },
         {
           headers: {
             Authorization: `Bearer ${token}`,
