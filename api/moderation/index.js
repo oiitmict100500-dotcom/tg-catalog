@@ -21,54 +21,57 @@ async function ensureTables() {
 
 // Создание ресурса из одобренной заявки
 async function createResourceFromSubmission(submission) {
-  try {
-    await ensureTables();
-    
-    const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    const authorId = String(submission.authorId || '');
-    
-    if (!submission.title || !submission.categoryId || !authorId) {
-      throw new Error('Missing required fields: title, categoryId, or authorId');
-    }
-    
-    const insertQuery = `
-      INSERT INTO resources (
-        id, title, description, telegram_link, telegram_username,
-        category_id, subcategory_id, cover_image, is_private,
-        author_id, author_username, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
-      RETURNING *
-    `;
-    
-    const insertParams = [
-      resourceId,
-      submission.title,
-      submission.description || '',
-      submission.telegramLink || null,
-      submission.telegramUsername || null,
-      submission.categoryId,
-      submission.subcategoryId || null,
-      submission.coverImage || null,
-      submission.isPrivate || false,
-      authorId,
-      submission.authorUsername || null,
-    ];
-    
-    const result = await query(insertQuery, insertParams);
-    
-    const createdResource = result.rows && result.rows.length > 0 
-      ? result.rows[0] 
-      : (Array.isArray(result) && result.length > 0 ? result[0] : null);
-    
-    if (!createdResource) {
-      throw new Error('Resource creation returned null result');
-    }
-    
-    return createdResource;
-  } catch (error) {
-    console.error('❌ Error creating resource:', error.message);
-    throw error;
+  await ensureTables();
+  
+  const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  const authorId = String(submission.authorId || '');
+  
+  if (!submission.title || !submission.categoryId || !authorId) {
+    throw new Error('Missing required fields: title, categoryId, or authorId');
   }
+  
+  const insertQuery = `
+    INSERT INTO resources (
+      id, title, description, telegram_link, telegram_username,
+      category_id, subcategory_id, cover_image, is_private,
+      author_id, author_username, created_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+    RETURNING *
+  `;
+  
+  const insertParams = [
+    resourceId,
+    submission.title,
+    submission.description || '',
+    submission.telegramLink || null,
+    submission.telegramUsername || null,
+    submission.categoryId,
+    submission.subcategoryId || null,
+    submission.coverImage || null,
+    submission.isPrivate || false,
+    authorId,
+    submission.authorUsername || null,
+  ];
+  
+  console.log('Executing INSERT query for resource:', resourceId);
+  const result = await query(insertQuery, insertParams);
+  console.log('INSERT result:', {
+    hasRows: !!result.rows,
+    rowsLength: result.rows?.length,
+    isArray: Array.isArray(result),
+  });
+  
+  const createdResource = result.rows && result.rows.length > 0 
+    ? result.rows[0] 
+    : (Array.isArray(result) && result.length > 0 ? result[0] : null);
+  
+  if (!createdResource) {
+    console.error('Resource creation failed - no result returned');
+    throw new Error('Resource creation returned null result');
+  }
+  
+  console.log('Resource created successfully:', createdResource.id || createdResource.ID);
+  return createdResource;
 }
 
 export default async function handler(req, res) {
@@ -159,15 +162,18 @@ export default async function handler(req, res) {
       // Создаем ресурс из одобренной заявки
       let resource;
       try {
+        console.log('Creating resource from submission:', updated.id);
         resource = await createResourceFromSubmission(updated);
+        console.log('Resource created:', resource?.id || resource?.ID);
       } catch (createError) {
-        console.error('❌ Error creating resource:', createError.message);
+        console.error('❌ Error creating resource:', createError);
         return res.status(500).json({ 
           message: 'Ошибка при создании ресурса: ' + createError.message,
         });
       }
       
       if (!resource) {
+        console.error('Resource creation returned null');
         return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
       }
 
