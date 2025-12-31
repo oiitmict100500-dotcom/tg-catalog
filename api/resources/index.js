@@ -173,45 +173,11 @@ export default async function handler(req, res) {
     });
     
     const result = await getResourcesByCategory(categoryId, pageNum, 20);
-    
-    console.log('📋 Resources loaded:', {
-      categoryId: categoryId || 'all',
-      count: result.resources.length,
-      total: result.total,
-      page: result.page,
-      resourceIds: result.resources.map((r: any) => r.id),
-      resourceTitles: result.resources.map((r: any) => r.title),
-    });
-    
-    
-    // Если ресурсов нет, проверяем, есть ли они вообще в базе
-    if (result.resources.length === 0 && categoryId) {
-      try {
-        const { query: checkQuery } = await import('../db.js');
-        const allResources = await checkQuery('SELECT COUNT(*) as total FROM resources WHERE category_id = $1', [categoryId]);
-        const totalInCategory = allResources.rows ? allResources.rows[0].total : (Array.isArray(allResources) ? allResources[0]?.total : 0);
-        console.log('🔍 Total resources in category in DB:', totalInCategory);
-      } catch (e) {
-        console.error('Error checking category resources:', e);
-      }
-    }
 
-    console.log('📤 Sending response:', {
-      resourcesCount: mappedResources.length,
-      total: total,
-      page: result.page,
-      totalPages: result.totalPages,
-      firstResource: mappedResources[0] ? {
-        id: mappedResources[0].id,
-        title: mappedResources[0].title,
-        categoryId: mappedResources[0].categoryId,
-      } : null,
-    });
-    
     return res.status(200).json({
-      resources: mappedResources,
-      data: mappedResources, // Для совместимости
-      total: total,
+      resources: result.resources,
+      data: result.resources, // Для совместимости
+      total: result.total,
       page: result.page,
       totalPages: result.totalPages,
     });
