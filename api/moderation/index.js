@@ -4,6 +4,65 @@
 // Использует PostgreSQL для хранения заявок
 
 import { getPendingSubmissions, getSubmissionById, updateSubmission } from './db-storage.js';
+import { query, initTables } from '../db.js';
+
+// Инициализация таблиц
+let tablesInitialized = false;
+async function ensureTables() {
+  if (!tablesInitialized) {
+    try {
+      await initTables();
+      tablesInitialized = true;
+    } catch (error) {
+      console.error('❌ Failed to initialize tables:', error);
+    }
+  }
+}
+
+// Создание ресурса из одобренной заявки
+async function createResourceFromSubmission(submission) {
+  try {
+    await ensureTables();
+    
+    const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    
+    const insertQuery = `
+      INSERT INTO resources (
+        id, title, description, telegram_link, telegram_username,
+        category_id, subcategory_id, cover_image, is_private,
+        author_id, author_username
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+    
+    const result = await query(insertQuery, [
+      resourceId,
+      submission.title,
+      submission.description || '',
+      submission.telegramLink || null,
+      submission.telegramUsername || null,
+      submission.categoryId,
+      submission.subcategoryId,
+      submission.coverImage,
+      submission.isPrivate || false,
+      submission.authorId,
+      submission.authorUsername,
+    ]);
+    
+    if (result.rows && result.rows.length > 0) {
+      return result.rows[0];
+    }
+    
+    if (Array.isArray(result) && result.length > 0) {
+      return result[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error creating resource from submission:', error);
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -79,9 +138,26 @@ export default async function handler(req, res) {
         moderatedAt: new Date().toISOString(),
       });
 
+      // Создаем ресурс из одобренной заявки
+      const resource = await createResourceFromSubmission(updated);
+      
+      if (!resource) {
+        console.error('❌ Failed to create resource from approved submission');
+        return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
+      }
+
+      console.log('✅ Resource created from approved submission:', {
+        resourceId: resource.id || resource.ID,
+        submissionId: updated.id,
+      });
+
       return res.status(200).json({
-        message: 'Заявка одобрена',
+        message: 'Заявка одобрена и ресурс создан',
         submission: updated,
+        resource: {
+          id: resource.id || resource.ID,
+          title: resource.title || resource.TITLE,
+        },
       });
     }
 

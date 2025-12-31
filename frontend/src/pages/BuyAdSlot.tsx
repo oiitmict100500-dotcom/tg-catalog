@@ -27,6 +27,14 @@ const DURATION_OPTIONS = [
   { days: 30, label: '30 дней', discount: 20 },
 ];
 
+interface UserResource {
+  id: string;
+  title: string;
+  categoryId: string;
+  isPaid: boolean;
+  paidUntil?: string;
+}
+
 function BuyAdSlot() {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -35,6 +43,9 @@ function BuyAdSlot() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [acceptedRules, setAcceptedRules] = useState(false);
+  const [userResources, setUserResources] = useState<UserResource[]>([]);
+  const [selectedResourceId, setSelectedResourceId] = useState<string>('');
+  const [loadingResources, setLoadingResources] = useState(false);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -45,6 +56,7 @@ function BuyAdSlot() {
     }
 
     loadCategory();
+    loadUserResources();
   }, [categoryId]);
 
   const loadCategory = async () => {
@@ -56,6 +68,41 @@ function BuyAdSlot() {
     } catch (error: any) {
       console.error('Error loading category:', error);
       setError('Ошибка загрузки категории');
+    }
+  };
+
+  const loadUserResources = async () => {
+    setLoadingResources(true);
+    try {
+      const token = authService.getToken();
+      const response = await axios.get('/api/users/me/resources', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      // Фильтруем ресурсы по категории и только неоплаченные или с истекшим сроком
+      const resources = (response.data || []).filter((r: UserResource) => {
+        if (r.categoryId !== categoryId) return false;
+        if (!r.isPaid) return true;
+        if (r.paidUntil) {
+          const paidUntil = new Date(r.paidUntil);
+          return paidUntil <= new Date();
+        }
+        return false;
+      });
+      
+      setUserResources(resources);
+      
+      // Автоматически выбираем первый ресурс, если есть
+      if (resources.length > 0 && !selectedResourceId) {
+        setSelectedResourceId(resources[0].id);
+      }
+    } catch (error: any) {
+      console.error('Error loading user resources:', error);
+      // Не показываем ошибку, просто оставляем пустой список
+    } finally {
+      setLoadingResources(false);
     }
   };
 
@@ -76,9 +123,15 @@ function BuyAdSlot() {
     try {
       // TODO: Интеграция с платежной системой (ЮKassa, Stripe и т.д.)
       // Пока показываем информацию о необходимости создать ресурс
+      if (!selectedResourceId) {
+        setError('Выберите ресурс для размещения рекламы');
+        return;
+      }
+
       const response = await axios.post('/api/resources/purchase-ad-slot', {
         categoryId: category.id,
         durationDays: selectedDuration,
+        resourceId: selectedResourceId,
       }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -86,11 +139,11 @@ function BuyAdSlot() {
       });
 
       if (response.data.success) {
-        alert('Рекламный слот успешно куплен! Ваш ресурс будет размещен после модерации.');
+        alert('Рекламный слот успешно куплен! Ваш ресурс будет размещен в платном разделе.');
         navigate('/my-resources');
       } else {
         // Если нужно сначала создать ресурс
-        if (response.data.message.includes('создайте ресурс')) {
+        if (response.data.requiresResource || response.data.message.includes('создайте ресурс')) {
           const proceed = window.confirm(
             response.data.message + '\n\nПерейти к созданию ресурса?'
           );
@@ -251,7 +304,7 @@ function BuyAdSlot() {
           <button
             className="purchase-btn"
             onClick={handlePurchase}
-            disabled={loading || !acceptedRules}
+            disabled={loading || !acceptedRules || !selectedResourceId || userResources.length === 0}
           >
             {loading ? 'Обработка...' : `Купить за ${totalPrice} ₽`}
           </button>

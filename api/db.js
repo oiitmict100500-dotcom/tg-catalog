@@ -133,9 +133,50 @@ export async function initTables() {
         rejection_reason TEXT
       );
       
+      CREATE TABLE IF NOT EXISTS resources (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(500) NOT NULL,
+        description TEXT,
+        telegram_link VARCHAR(500),
+        telegram_username VARCHAR(255),
+        category_id VARCHAR(50) NOT NULL,
+        subcategory_id VARCHAR(50) NOT NULL,
+        cover_image TEXT NOT NULL,
+        is_private BOOLEAN DEFAULT FALSE,
+        author_id VARCHAR(255) NOT NULL,
+        author_username VARCHAR(255) NOT NULL,
+        is_paid BOOLEAN DEFAULT FALSE,
+        paid_until TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS ad_slot_purchases (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        resource_id VARCHAR(255),
+        category_id VARCHAR(50) NOT NULL,
+        duration_days INTEGER NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        payment_id VARCHAR(255),
+        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE SET NULL
+      );
+      
       CREATE INDEX IF NOT EXISTS idx_status ON moderation_submissions(status);
       CREATE INDEX IF NOT EXISTS idx_created_at ON moderation_submissions(created_at);
       CREATE INDEX IF NOT EXISTS idx_author_id ON moderation_submissions(author_id);
+      
+      CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category_id);
+      CREATE INDEX IF NOT EXISTS idx_resources_paid ON resources(is_paid, paid_until);
+      CREATE INDEX IF NOT EXISTS idx_resources_author ON resources(author_id);
+      
+      CREATE INDEX IF NOT EXISTS idx_purchases_user ON ad_slot_purchases(user_id);
+      CREATE INDEX IF NOT EXISTS idx_purchases_category ON ad_slot_purchases(category_id);
+      CREATE INDEX IF NOT EXISTS idx_purchases_status ON ad_slot_purchases(status);
+      CREATE INDEX IF NOT EXISTS idx_purchases_expires ON ad_slot_purchases(expires_at);
     `;
 
     await query(createTableQuery);

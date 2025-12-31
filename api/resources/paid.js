@@ -1,5 +1,10 @@
-// Простой API endpoint для платных ресурсов (пока пустой)
-export default function handler(req, res) {
+// API endpoint для получения платных ресурсов
+// Vercel Serverless Function
+// Использует PostgreSQL для хранения
+
+import { getAllActivePaidResources, getActivePaidResources } from './ad-slots.js';
+
+export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -13,9 +18,29 @@ export default function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Пока возвращаем пустой массив
-  // В будущем можно добавить хранение в localStorage или внешний сервис
-  return res.status(200).json([]);
+  try {
+    const { categoryId } = req.query;
+
+    let resources;
+
+    if (categoryId) {
+      // Получаем платные ресурсы для конкретной категории (максимум 3)
+      resources = await getActivePaidResources(categoryId, 3);
+    } else {
+      // Получаем все активные платные ресурсы
+      resources = await getAllActivePaidResources();
+    }
+
+    console.log('📋 Paid resources:', {
+      categoryId: categoryId || 'all',
+      count: resources.length,
+    });
+
+    return res.status(200).json(resources);
+  } catch (error) {
+    console.error('Error loading paid resources:', error);
+    return res.status(500).json({ message: 'Ошибка при загрузке платных ресурсов' });
+  }
 }
 
 
