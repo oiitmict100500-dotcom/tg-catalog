@@ -80,7 +80,7 @@ function Moderation() {
     try {
       const token = authService.getToken();
       console.log('📤 Loading submissions from API...');
-      const response = await axios.get('/api/moderation/pending', {
+      const response = await axios.get('/api/moderation?action=pending', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
