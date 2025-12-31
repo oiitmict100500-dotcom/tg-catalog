@@ -34,7 +34,7 @@ async function getResourcesByCategory(categoryId, page = 1, limit = 20) {
         SELECT *
         FROM resources
         WHERE category_id = $1
-        ORDER BY created_at DESC
+        ORDER BY is_paid DESC, created_at DESC
         LIMIT $2 OFFSET $3
       `;
       countQuery = 'SELECT COUNT(*) as total FROM resources WHERE category_id = $1';
@@ -43,12 +43,18 @@ async function getResourcesByCategory(categoryId, page = 1, limit = 20) {
       selectQuery = `
         SELECT *
         FROM resources
-        ORDER BY created_at DESC
+        ORDER BY is_paid DESC, created_at DESC
         LIMIT $1 OFFSET $2
       `;
       countQuery = 'SELECT COUNT(*) as total FROM resources';
       params = [limit, offset];
     }
+    
+    console.log('🔍 Executing query:', {
+      categoryId: categoryId || 'all',
+      query: selectQuery.substring(0, 100) + '...',
+      params,
+    });
     
     const result = await query(selectQuery, params);
     const countResult = await query(countQuery, categoryId ? [categoryId] : []);
