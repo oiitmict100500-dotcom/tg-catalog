@@ -86,13 +86,39 @@ async function createResourceFromSubmission(submission) {
       paramCount: insertParams.length,
       title: insertParams[1],
       categoryId: insertParams[5],
+      allParams: insertParams.map((p, i) => ({ index: i, value: typeof p === 'string' ? p.substring(0, 50) : p })),
     });
     
-    const result = await query(insertQuery, insertParams);
+    let result;
+    try {
+      result = await query(insertQuery, insertParams);
+      console.log('✅ Query executed successfully');
+    } catch (queryError) {
+      console.error('❌ Query execution failed:', queryError);
+      console.error('Query:', insertQuery);
+      console.error('Params:', insertParams);
+      throw queryError;
+    }
+    
+    console.log('🔍 Query result structure:', {
+      hasResult: !!result,
+      resultType: typeof result,
+      isArray: Array.isArray(result),
+      hasRows: !!result.rows,
+      rowsLength: result.rows?.length,
+      resultKeys: result ? Object.keys(result) : [],
+      firstRow: result.rows?.[0] ? Object.keys(result.rows[0]) : null,
+    });
     
     const createdResource = result.rows && result.rows.length > 0 
       ? result.rows[0] 
       : (Array.isArray(result) && result.length > 0 ? result[0] : null);
+    
+    console.log('🔍 Created resource extracted:', {
+      hasResource: !!createdResource,
+      resourceId: createdResource?.id || createdResource?.ID,
+      resourceKeys: createdResource ? Object.keys(createdResource) : [],
+    });
     
     if (createdResource) {
       console.log('✅ Resource created successfully:', {
