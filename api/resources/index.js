@@ -33,26 +33,27 @@ async function getResourcesByCategory(categoryId, page = 1, limit = 20) {
       selectQuery = `
         SELECT *
         FROM resources
-        WHERE category_id = $1
+        WHERE category_id = $1 AND status = 'approved'
         ORDER BY is_paid DESC, created_at DESC
         LIMIT $2 OFFSET $3
       `;
-      countQuery = 'SELECT COUNT(*) as total FROM resources WHERE category_id = $1';
+      countQuery = "SELECT COUNT(*) as total FROM resources WHERE category_id = $1 AND status = 'approved'";
       params = [categoryId, limit, offset];
     } else {
       selectQuery = `
         SELECT *
         FROM resources
+        WHERE status = 'approved'
         ORDER BY is_paid DESC, created_at DESC
         LIMIT $1 OFFSET $2
       `;
-      countQuery = 'SELECT COUNT(*) as total FROM resources';
+      countQuery = "SELECT COUNT(*) as total FROM resources WHERE status = 'approved'";
       params = [limit, offset];
     }
     
-    console.log('🔍 Executing query:', {
+    console.log('🔍 Executing query for approved resources:', {
       categoryId: categoryId || 'all',
-      query: selectQuery.substring(0, 100) + '...',
+      query: selectQuery,
       params,
     });
     
@@ -65,10 +66,16 @@ async function getResourcesByCategory(categoryId, page = 1, limit = 20) {
     const countRow = countResult.rows ? countResult.rows[0] : (Array.isArray(countResult) ? countResult[0] : {});
     const total = parseInt(countRow.total || countRow.TOTAL || 0);
     
+    console.log('📊 Query result for approved resources:', {
+      resourcesCount: resources.length,
+      total: total,
+      categoryId: categoryId || 'all',
+    });
+    
     // Преобразуем строки БД в объекты ресурсов
-    const mappedResources = resources.map((row: any) => {
+    const mappedResources = resources.map((row) => {
       const categoryId = row.category_id || row.CATEGORY_ID || row.categoryId;
-      const categoryMap: Record<string, { type: string; name: string }> = {
+      const categoryMap = {
         '1': { type: 'channel', name: 'Каналы' },
         '2': { type: 'group', name: 'Группы' },
         '3': { type: 'bot', name: 'Боты' },
@@ -164,7 +171,7 @@ export default async function handler(req, res) {
 
     // Если запрашивается список ресурсов
     const categoryId = category || null;
-    const pageNum = parseInt(page as string) || 1;
+    const pageNum = parseInt(page) || 1;
     
     console.log('📋 Loading resources request:', {
       categoryId: categoryId || 'all',
@@ -173,6 +180,14 @@ export default async function handler(req, res) {
     });
     
     const result = await getResourcesByCategory(categoryId, pageNum, 20);
+
+    console.log('📤 Returning resources:', {
+      categoryId: categoryId || 'all',
+      count: result.resources.length,
+      total: result.total,
+      resourceIds: result.resources.map(r => r.id),
+      resourceTitles: result.resources.map(r => r.title),
+    });
 
     return res.status(200).json({
       resources: result.resources,

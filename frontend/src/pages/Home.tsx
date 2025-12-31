@@ -181,6 +181,10 @@ function Home() {
       
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
         setError('Backend не запущен! Запустите Backend на порту 3000.');
+      } else if (error.response?.status === 404) {
+        const url = error.config?.url || 'unknown';
+        setError(`API endpoint не найден: ${url}. Проверьте, что endpoint существует.`);
+        console.error(`❌ 404 Error for URL: ${url}`);
       } else {
         setError('Ошибка загрузки ресурсов: ' + (error.response?.data?.message || error.message));
       }

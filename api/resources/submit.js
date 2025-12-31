@@ -1,7 +1,7 @@
 // API endpoint для отправки ресурса на модерацию
 // Vercel Serverless Function
-// Использует PostgreSQL для хранения заявок
-import { addSubmission, getStorageInfo } from '../moderation/db-storage.js';
+// Использует PostgreSQL - создает ресурс сразу в таблице resources со статусом 'pending'
+import { query, initTables } from '../db.js';
 
 export default async function handler(req, res) {
   console.log('📥 Submit resource request received:', {
@@ -124,65 +124,75 @@ export default async function handler(req, res) {
       finalTelegramLink = `https://t.me/${telegramUsername.replace('@', '')}`;
     }
 
-    // Создаем заявку на модерацию
-    const submissionId = 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    const submission = {
-      id: submissionId,
-      title: title.trim(),
-      description: description?.trim() || '',
-      telegramLink: finalTelegramLink,
-      telegramUsername: telegramUsername?.trim() || null,
-      categoryId,
-      subcategoryId,
-      coverImage: finalCoverImage,
-      isPrivate: isPrivate || false,
-      authorId: authorId || 'anonymous',
-      authorUsername: authorUsername || 'Анонимный пользователь',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    // Сохраняем заявку в систему модерации (PostgreSQL)
-    console.log('💾 Attempting to save submission to PostgreSQL:', {
-      id: submission.id,
-      title: submission.title,
-    });
+    // Создаем ресурс сразу в таблице resources со статусом 'pending'
+    await initTables();
     
-    try {
-      const savedSubmission = await addSubmission(submission);
-      
-      // Проверяем, что заявка действительно сохранилась
-      const { getPendingSubmissions } = await import('../moderation/db-storage.js');
-      const pendingAfterSave = await getPendingSubmissions();
-      const found = pendingAfterSave.find(s => s.id === submission.id);
-      
-      const storageInfo = await getStorageInfo();
-      
-      console.log('✅ Submission save result (PostgreSQL):', {
-        id: savedSubmission.id,
-        title: savedSubmission.title,
-        status: savedSubmission.status,
-        foundInPending: !!found,
-        totalPending: pendingAfterSave.length,
-        storageInfo,
-      });
-      
-      if (!found) {
-        console.error('❌ WARNING: Submission was saved but not found in pending list!');
-        console.error('This may indicate a database query issue.');
-      }
-    } catch (error) {
-      console.error('❌ Error saving submission to PostgreSQL:', error);
-      console.error('Error stack:', error.stack);
-      // Продолжаем выполнение, даже если сохранение не удалось
-      // В продакшене здесь можно добавить fallback или уведомление
-    }
+    const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const finalAuthorId = String(authorId || 'anonymous');
+    const finalAuthorUsername = authorUsername || 'Анонимный пользователь';
 
-    console.log('✅ Submission processed successfully:', submissionId);
-    return res.status(200).json({ 
-      message: 'Заявка отправлена на модерацию',
-      id: submissionId,
+    console.log('💾 Creating resource with status pending:', {
+      id: resourceId,
+      title: title.trim(),
+      categoryId,
+      authorId: finalAuthorId,
     });
+
+    const insertQuery = `
+      INSERT INTO resources (
+        id, title, description, telegram_link, telegram_username,
+        category_id, subcategory_id, cover_image, is_private,
+        author_id, author_username, status, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
+      RETURNING *
+    `;
+
+    const insertParams = [
+      resourceId,
+      title.trim(),
+      description?.trim() || '',
+      finalTelegramLink || null,
+      telegramUsername?.trim() || null,
+      categoryId,
+      subcategoryId || null,
+      finalCoverImage || null,
+      isPrivate || false,
+      finalAuthorId,
+      finalAuthorUsername,
+      'pending', // Статус pending - на модерации
+    ];
+
+    try {
+      const result = await query(insertQuery, insertParams);
+      const createdResource = result.rows && result.rows.length > 0 
+        ? result.rows[0] 
+        : (Array.isArray(result) && result.length > 0 ? result[0] : null);
+
+      if (!createdResource) {
+        throw new Error('Resource creation returned null result');
+      }
+
+      console.log('✅ Resource created successfully with status pending:', {
+        id: createdResource.id || createdResource.ID,
+        title: createdResource.title || createdResource.TITLE,
+        status: createdResource.status || createdResource.STATUS,
+      });
+
+      return res.status(200).json({ 
+        message: 'Заявка отправлена на модерацию',
+        id: resourceId,
+      });
+    } catch (error) {
+      console.error('❌ Error creating resource:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+      });
+      return res.status(500).json({ 
+        message: 'Ошибка при создании заявки: ' + error.message 
+      });
+    }
   } catch (error) {
     console.error('❌ Error submitting resource:', error);
     console.error('Error details:', {

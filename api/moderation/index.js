@@ -1,9 +1,8 @@
 // Объединенный API endpoint для модерации
 // Обрабатывает все запросы модерации: pending, approve, reject
 // Vercel Serverless Function
-// Использует PostgreSQL для хранения заявок
+// Использует PostgreSQL - работает с таблицей resources со статусами
 
-import { getPendingSubmissions, getSubmissionById, updateSubmission } from './db-storage.js';
 import { query, initTables } from '../db.js';
 
 // Инициализация таблиц
@@ -19,54 +18,152 @@ async function ensureTables() {
   }
 }
 
-// Создание ресурса из одобренной заявки
-async function createResourceFromSubmission(submission) {
+// Получение заявок на модерацию (resources со статусом 'pending')
+async function getPendingSubmissions() {
   await ensureTables();
   
-  const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-  const authorId = String(submission.authorId || '');
+  const selectQuery = `
+    SELECT * FROM resources
+    WHERE status = 'pending'
+    ORDER BY created_at DESC
+  `;
   
-  if (!submission.title || !submission.categoryId || !authorId) {
-    throw new Error('Missing required fields: title, categoryId, or authorId');
+  const result = await query(selectQuery);
+  const rows = result.rows || result;
+  const submissions = Array.isArray(rows) ? rows : [];
+  
+  return submissions.map(mapRowToSubmission);
+}
+
+// Получение заявки по ID
+async function getSubmissionById(id) {
+  await ensureTables();
+  
+  const selectQuery = 'SELECT * FROM resources WHERE id = $1';
+  const result = await query(selectQuery, [id]);
+  
+  if (result.rows && result.rows.length > 0) {
+    return mapRowToSubmission(result.rows[0]);
   }
   
-  const insertQuery = `
-    INSERT INTO resources (
-      id, title, description, telegram_link, telegram_username,
-      category_id, subcategory_id, cover_image, is_private,
-      author_id, author_username, created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+  if (Array.isArray(result) && result.length > 0) {
+    return mapRowToSubmission(result[0]);
+  }
+  
+  return null;
+}
+
+// Обновление статуса ресурса
+async function updateResourceStatus(resourceId, status, moderatorInfo = null, rejectionReason = null) {
+  await ensureTables();
+  
+  console.log('🔄 updateResourceStatus called:', {
+    resourceId,
+    status,
+    hasModeratorInfo: !!moderatorInfo,
+    hasRejectionReason: !!rejectionReason,
+  });
+  
+  const updateFields = [`status = $1`, `updated_at = CURRENT_TIMESTAMP`];
+  const updateValues = [status];
+  let paramIndex = 2;
+  
+  if (moderatorInfo) {
+    updateFields.push(`moderated_by_id = $${paramIndex++}`);
+    updateFields.push(`moderated_by = $${paramIndex++}`);
+    updateFields.push(`moderated_at = $${paramIndex++}`);
+    updateValues.push(moderatorInfo.id, moderatorInfo.username, new Date().toISOString());
+  }
+  
+  if (rejectionReason) {
+    updateFields.push(`rejection_reason = $${paramIndex++}`);
+    updateValues.push(rejectionReason);
+  }
+  
+  updateValues.push(resourceId);
+  
+  const updateQuery = `
+    UPDATE resources
+    SET ${updateFields.join(', ')}
+    WHERE id = $${paramIndex}
     RETURNING *
   `;
   
-  const insertParams = [
-    resourceId,
-    submission.title,
-    submission.description || '',
-    submission.telegramLink || null,
-    submission.telegramUsername || null,
-    submission.categoryId,
-    submission.subcategoryId || null,
-    submission.coverImage || null,
-    submission.isPrivate || false,
-    authorId,
-    submission.authorUsername || null,
-  ];
+  console.log('💾 Executing UPDATE query:', {
+    query: updateQuery.substring(0, 200),
+    params: updateValues,
+  });
   
-  const result = await query(insertQuery, insertParams);
-  
-  const createdResource = result.rows && result.rows.length > 0 
-    ? result.rows[0] 
-    : (Array.isArray(result) && result.length > 0 ? result[0] : null);
-  
-  if (!createdResource) {
-    throw new Error('Resource creation returned null result');
+  try {
+    const result = await query(updateQuery, updateValues);
+    
+    console.log('📊 UPDATE query result:', {
+      hasRows: !!result.rows,
+      rowsLength: result.rows?.length || 0,
+      isArray: Array.isArray(result),
+    });
+    
+    const updatedResource = result.rows && result.rows.length > 0 
+      ? result.rows[0] 
+      : (Array.isArray(result) && result.length > 0 ? result[0] : null);
+    
+    if (!updatedResource) {
+      console.error('❌ UPDATE returned no rows');
+      return null;
+    }
+    
+    console.log('✅ Resource status updated:', {
+      id: updatedResource.id || updatedResource.ID,
+      title: updatedResource.title || updatedResource.TITLE,
+      status: updatedResource.status || updatedResource.STATUS,
+    });
+    
+    return mapRowToSubmission(updatedResource);
+  } catch (error) {
+    console.error('❌ Error in updateResourceStatus:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+    });
+    throw error;
   }
+}
+
+// Преобразование строки БД в объект заявки
+function mapRowToSubmission(row) {
+  if (!row) return null;
   
-  return createdResource;
+  return {
+    id: row.id || row.ID,
+    title: row.title || row.TITLE,
+    description: row.description || row.DESCRIPTION || '',
+    telegramLink: row.telegram_link || row.TELEGRAM_LINK || row.telegramLink,
+    telegramUsername: row.telegram_username || row.TELEGRAM_USERNAME || row.telegramUsername,
+    categoryId: row.category_id || row.CATEGORY_ID || row.categoryId,
+    subcategoryId: row.subcategory_id || row.SUBCATEGORY_ID || row.subcategoryId,
+    coverImage: row.cover_image || row.COVER_IMAGE || row.coverImage,
+    isPrivate: row.is_private || row.IS_PRIVATE || row.isPrivate || false,
+    authorId: row.author_id || row.AUTHOR_ID || row.authorId,
+    authorUsername: row.author_username || row.AUTHOR_USERNAME || row.authorUsername,
+    status: row.status || row.STATUS || 'pending',
+    createdAt: row.created_at || row.CREATED_AT || row.createdAt,
+    moderatedById: row.moderated_by_id || row.MODERATED_BY_ID || row.moderatedById,
+    moderatedBy: row.moderated_by || row.MODERATED_BY || row.moderatedBy,
+    moderatedAt: row.moderated_at || row.MODERATED_AT || row.moderatedAt,
+    rejectionReason: row.rejection_reason || row.REJECTION_REASON || row.rejectionReason,
+  };
 }
 
 export default async function handler(req, res) {
+  console.log('📥 Moderation API request:', {
+    method: req.method,
+    url: req.url,
+    hasBody: !!req.body,
+    bodyKeys: req.body ? Object.keys(req.body) : [],
+    query: req.query,
+  });
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -78,6 +175,7 @@ export default async function handler(req, res) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.warn('⚠️ No authorization header');
       return res.status(401).json({ message: 'Требуется авторизация' });
     }
 
@@ -87,14 +185,17 @@ export default async function handler(req, res) {
       const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
       user = decoded;
     } catch (e) {
+      console.error('❌ Token decode error:', e);
       return res.status(401).json({ message: 'Неверный токен' });
     }
 
     if (user.role !== 'admin') {
+      console.warn('⚠️ Non-admin user attempted access:', user.username);
       return res.status(403).json({ message: 'Доступ запрещен. Требуются права администратора' });
     }
 
     const action = req.query.action || req.body?.action;
+    console.log('🎯 Action determined:', action);
 
     // GET /api/moderation?action=pending - получение заявок на модерацию
     if (req.method === 'GET' && (!action || action === 'pending')) {
@@ -107,51 +208,61 @@ export default async function handler(req, res) {
 
     // POST /api/moderation с action=approve - одобрение заявки
     if (req.method === 'POST' && action === 'approve') {
+      console.log('🎯 APPROVE ACTION TRIGGERED');
+      console.log('Request body:', JSON.stringify(req.body));
+      
       const { submissionId } = req.body;
 
       if (!submissionId) {
+        console.error('❌ No submissionId provided');
         return res.status(400).json({ message: 'Укажите ID заявки' });
       }
 
-      const submission = await getSubmissionById(submissionId);
+      console.log('🔍 Fetching resource:', submissionId);
+      const resource = await getSubmissionById(submissionId);
 
-      if (!submission) {
+      if (!resource) {
+        console.error('❌ Resource not found:', submissionId);
         return res.status(404).json({ message: 'Заявка не найдена' });
       }
 
-      if (submission.status !== 'pending') {
+      console.log('📄 Resource found:', {
+        id: resource.id,
+        title: resource.title,
+        status: resource.status,
+        authorId: resource.authorId,
+      });
+
+      if (resource.status !== 'pending') {
+        console.warn('⚠️ Resource already processed:', resource.status);
         return res.status(400).json({ message: 'Заявка уже обработана' });
       }
 
-      const updated = await updateSubmission(submissionId, {
-        status: 'approved',
-        moderatedById: user.id,
-        moderatedBy: user.username,
-        moderatedAt: new Date().toISOString(),
+      console.log('💾 Updating resource status to approved...');
+      const updated = await updateResourceStatus(submissionId, 'approved', {
+        id: user.id,
+        username: user.username,
+      });
+      
+      if (!updated) {
+        console.error('❌ Failed to update resource status');
+        return res.status(500).json({ message: 'Ошибка при обновлении статуса' });
+      }
+
+      console.log('✅ Resource approved successfully:', {
+        id: updated.id,
+        title: updated.title,
+        status: updated.status,
       });
 
-      // Создаем ресурс из одобренной заявки
-      try {
-        const resource = await createResourceFromSubmission(updated);
-        
-        if (!resource) {
-          return res.status(500).json({ message: 'Заявка одобрена, но не удалось создать ресурс' });
-        }
-
-        return res.status(200).json({
-          message: 'Заявка одобрена и ресурс создан',
-          submission: updated,
-          resource: {
-            id: resource.id || resource.ID,
-            title: resource.title || resource.TITLE,
-          },
-        });
-      } catch (error) {
-        console.error('Error creating resource:', error);
-        return res.status(500).json({ 
-          message: 'Ошибка при создании ресурса: ' + error.message 
-        });
-      }
+      return res.status(200).json({
+        message: 'Заявка одобрена',
+        resource: {
+          id: updated.id,
+          title: updated.title,
+          status: updated.status,
+        },
+      });
     }
 
     // POST /api/moderation с action=reject - отклонение заявки
@@ -162,27 +273,37 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: 'Укажите ID заявки' });
       }
 
-      const submission = await getSubmissionById(submissionId);
+      const resource = await getSubmissionById(submissionId);
 
-      if (!submission) {
+      if (!resource) {
         return res.status(404).json({ message: 'Заявка не найдена' });
       }
 
-      if (submission.status !== 'pending') {
+      if (resource.status !== 'pending') {
         return res.status(400).json({ message: 'Заявка уже обработана' });
       }
 
-      const updated = await updateSubmission(submissionId, {
-        status: 'rejected',
-        rejectionReason: reason || 'Причина не указана',
-        moderatedById: user.id,
-        moderatedBy: user.username,
-        moderatedAt: new Date().toISOString(),
-      });
+      const updated = await updateResourceStatus(
+        submissionId,
+        'rejected',
+        {
+          id: user.id,
+          username: user.username,
+        },
+        reason || 'Причина не указана'
+      );
+
+      if (!updated) {
+        return res.status(500).json({ message: 'Ошибка при обновлении статуса' });
+      }
 
       return res.status(200).json({
         message: 'Заявка отклонена',
-        submission: updated,
+        resource: {
+          id: updated.id,
+          title: updated.title,
+          status: updated.status,
+        },
       });
     }
 

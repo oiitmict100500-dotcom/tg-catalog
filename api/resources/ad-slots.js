@@ -48,6 +48,7 @@ export async function getActivePaidResources(categoryId, limit = 3) {
       SELECT *
       FROM resources
       WHERE category_id = $1
+        AND status = 'approved'
         AND is_paid = TRUE
         AND (paid_until IS NULL OR paid_until > CURRENT_TIMESTAMP)
       ORDER BY paid_until DESC NULLS LAST, created_at DESC
@@ -73,7 +74,8 @@ export async function getAllActivePaidResources() {
     const selectQuery = `
       SELECT *
       FROM resources
-      WHERE is_paid = TRUE
+      WHERE status = 'approved'
+        AND is_paid = TRUE
         AND (paid_until IS NULL OR paid_until > CURRENT_TIMESTAMP)
       ORDER BY paid_until DESC NULLS LAST, created_at DESC
     `;
@@ -172,20 +174,54 @@ export async function getUserResources(userId) {
   try {
     await ensureTables();
     
+    console.log('🔍 getUserResources query:', {
+      userId: userId,
+      userIdType: typeof userId,
+    });
+    
     const selectQuery = `
       SELECT *
       FROM resources
-      WHERE author_id = $1
+      WHERE author_id = $1 AND status = 'approved'
       ORDER BY created_at DESC
     `;
+    
+    console.log('🔍 getUserResources query (approved only):', {
+      userId: userId,
+      query: selectQuery,
+    });
     
     const result = await query(selectQuery, [userId]);
     const rows = result.rows || result;
     const resources = Array.isArray(rows) ? rows : [];
     
-    return resources.map(mapRowToResource);
+    console.log('📋 getUserResources result (approved only):', {
+      userId: userId,
+      rawRowsCount: resources.length,
+      resources: resources.map(r => ({
+        id: r.id || r.ID,
+        title: r.title || r.TITLE,
+        authorId: r.author_id || r.AUTHOR_ID,
+        status: r.status || r.STATUS,
+      })),
+    });
+    
+    const mapped = resources.map(mapRowToResource);
+    
+    console.log('✅ getUserResources mapped:', {
+      userId: userId,
+      count: mapped.length,
+      mappedResources: mapped.map(r => ({
+        id: r.id,
+        title: r.title,
+        authorId: r.authorId,
+      })),
+    });
+    
+    return mapped;
   } catch (error) {
     console.error('❌ Error getting user resources:', error);
+    console.error('Error stack:', error.stack);
     return [];
   }
 }

@@ -20,10 +20,41 @@ function MyResources() {
 
   const loadResources = async () => {
     try {
-      const response = await axios.get('/api/users/me/resources');
+      const token = authService.getToken();
+      if (!token) {
+        console.error('❌ No token found');
+        setLoading(false);
+        return;
+      }
+
+      console.log('📤 Loading user resources...');
+      // Используем альтернативный endpoint без вложенных путей для совместимости с Vercel
+      const response = await axios.get('/api/users-me-resources', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('📥 User resources response:', {
+        status: response.status,
+        count: response.data?.length || 0,
+        resources: response.data?.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          categoryId: r.categoryId,
+        })),
+      });
+
       setResources(response.data || []);
-    } catch (error) {
-      console.error('Error loading resources:', error);
+    } catch (error: any) {
+      console.error('❌ Error loading resources:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      // Не показываем ошибку пользователю, просто пустой список
+      setResources([]);
     } finally {
       setLoading(false);
     }

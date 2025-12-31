@@ -178,13 +178,18 @@ export async function initTables() {
         telegram_link VARCHAR(500),
         telegram_username VARCHAR(255),
         category_id VARCHAR(50) NOT NULL,
-        subcategory_id VARCHAR(50) NOT NULL,
-        cover_image TEXT NOT NULL,
+        subcategory_id VARCHAR(50),
+        cover_image TEXT,
         is_private BOOLEAN DEFAULT FALSE,
         author_id VARCHAR(255) NOT NULL,
-        author_username VARCHAR(255) NOT NULL,
+        author_username VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'pending',
         is_paid BOOLEAN DEFAULT FALSE,
         paid_until TIMESTAMP,
+        moderated_by_id VARCHAR(255),
+        moderated_by VARCHAR(255),
+        moderated_at TIMESTAMP,
+        rejection_reason TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -210,6 +215,8 @@ export async function initTables() {
       CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category_id);
       CREATE INDEX IF NOT EXISTS idx_resources_paid ON resources(is_paid, paid_until);
       CREATE INDEX IF NOT EXISTS idx_resources_author ON resources(author_id);
+      CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status);
+      CREATE INDEX IF NOT EXISTS idx_resources_status_category ON resources(status, category_id);
       
       CREATE INDEX IF NOT EXISTS idx_purchases_user ON ad_slot_purchases(user_id);
       CREATE INDEX IF NOT EXISTS idx_purchases_category ON ad_slot_purchases(category_id);
@@ -218,6 +225,53 @@ export async function initTables() {
     `;
 
     await query(createTableQuery);
+    
+    // Обновляем существующую таблицу resources (добавляем новые поля, если их нет)
+    try {
+      await query(`ALTER TABLE resources ALTER COLUMN subcategory_id DROP NOT NULL`);
+    } catch (e) {
+      // Игнорируем ошибку
+    }
+    
+    try {
+      await query(`ALTER TABLE resources ALTER COLUMN cover_image DROP NOT NULL`);
+    } catch (e) {
+      // Игнорируем ошибку
+    }
+    
+    try {
+      await query(`ALTER TABLE resources ALTER COLUMN author_username DROP NOT NULL`);
+    } catch (e) {
+      // Игнорируем ошибку
+    }
+    
+    // Добавляем поле status, если его нет
+    try {
+      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`);
+      // Обновляем существующие записи без статуса
+      await query(`UPDATE resources SET status = 'approved' WHERE status IS NULL`);
+    } catch (e) {
+      // Игнорируем ошибку
+    }
+    
+    // Добавляем поля модерации, если их нет
+    try {
+      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS moderated_by_id VARCHAR(255)`);
+      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS moderated_by VARCHAR(255)`);
+      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS moderated_at TIMESTAMP`);
+      await query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
+    } catch (e) {
+      // Игнорируем ошибку
+    }
+    
+    // Создаем индексы, если их нет
+    try {
+      await query(`CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)`);
+      await query(`CREATE INDEX IF NOT EXISTS idx_resources_status_category ON resources(status, category_id)`);
+    } catch (e) {
+      // Игнорируем ошибку
+    }
+    
     console.log('✅ Database tables initialized');
   } catch (error) {
     console.error('❌ Error initializing tables:', error);

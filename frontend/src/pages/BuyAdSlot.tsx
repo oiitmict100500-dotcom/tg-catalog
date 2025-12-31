@@ -75,7 +75,8 @@ function BuyAdSlot() {
     setLoadingResources(true);
     try {
       const token = authService.getToken();
-      const response = await axios.get('/api/users/me/resources', {
+      // Используем альтернативный endpoint без вложенных путей для совместимости с Vercel
+      const response = await axios.get('/api/users-me-resources', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

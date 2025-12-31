@@ -147,7 +147,7 @@ function Moderation() {
     setApprovingId(submissionId);
     try {
       const token = authService.getToken();
-      await axios.post(
+      const response = await axios.post(
         '/api/moderation',
         { action: 'approve', submissionId },
         {
@@ -156,6 +156,7 @@ function Moderation() {
           },
         }
       );
+      console.log('✅ Approval response:', response.data);
       alert('Заявка одобрена!');
       // Загружаем созданный ресурс для возможности редактирования
       if (response.data.resource?.id) {

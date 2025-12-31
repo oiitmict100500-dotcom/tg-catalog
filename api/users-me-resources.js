@@ -1,8 +1,9 @@
 // API endpoint для получения ресурсов текущего пользователя
 // Vercel Serverless Function
+// Альтернативный путь: /api/users-me-resources (без вложенных путей)
 // Использует PostgreSQL для хранения
 
-import { getUserResources } from '../../resources/ad-slots.js';
+import { getUserResources } from './resources/ad-slots.js';
 
 export default async function handler(req, res) {
   // Устанавливаем CORS заголовки
@@ -59,9 +60,9 @@ export default async function handler(req, res) {
     });
 
     // Преобразуем ресурсы для фронтенда
-    const mappedResources = resources.map((resource: any) => {
+    const mappedResources = resources.map((resource) => {
       const categoryId = resource.categoryId;
-      const categoryMap: Record<string, { type: string; name: string }> = {
+      const categoryMap = {
         '1': { type: 'channel', name: 'Каналы' },
         '2': { type: 'group', name: 'Группы' },
         '3': { type: 'bot', name: 'Боты' },
