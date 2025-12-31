@@ -423,9 +423,9 @@ function Home() {
                         </span>
                       </div>
                       <h3>{resource.title}</h3>
-                      <p>{resource.description?.substring(0, 100)}...</p>
+                      <p>{resource.description ? (resource.description.length > 100 ? resource.description.substring(0, 100) + '...' : resource.description) : ''}</p>
                       <div className="resource-stats">
-                        <span>👁️ {resource.viewCount}</span>
+                        <span>👁️ {resource.viewCount || 0}</span>
                         {resource.rating > 0 && (
                           <span>⭐ {resource.rating.toFixed(1)}</span>
                         )}
