@@ -223,6 +223,11 @@ function Moderation() {
     return categories[categoryId] || 'Неизвестно';
   };
 
+  const handleSaveResource = () => {
+    setEditingResource(null);
+    loadSubmissions();
+  };
+
   if (loading) {
     return (
       <div className="moderation-container">

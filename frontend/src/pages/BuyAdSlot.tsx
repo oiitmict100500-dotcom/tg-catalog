@@ -45,7 +45,6 @@ function BuyAdSlot() {
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [userResources, setUserResources] = useState<UserResource[]>([]);
   const [selectedResourceId, setSelectedResourceId] = useState<string>('');
-  const [loadingResources, setLoadingResources] = useState(false);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -72,7 +71,6 @@ function BuyAdSlot() {
   };
 
   const loadUserResources = async () => {
-    setLoadingResources(true);
     try {
       const token = authService.getToken();
       // Используем альтернативный endpoint без вложенных путей для совместимости с Vercel
@@ -102,8 +100,6 @@ function BuyAdSlot() {
     } catch (error: any) {
       console.error('Error loading user resources:', error);
       // Не показываем ошибку, просто оставляем пустой список
-    } finally {
-      setLoadingResources(false);
     }
   };
 
