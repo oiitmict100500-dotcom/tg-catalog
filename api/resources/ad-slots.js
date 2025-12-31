@@ -213,6 +213,80 @@ export async function getResourceById(resourceId) {
   }
 }
 
+// Обновление ресурса (для админов)
+export async function updateResource(resourceId, updates) {
+  try {
+    await ensureTables();
+    
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    if (updates.title !== undefined) {
+      updateFields.push(`title = $${paramIndex++}`);
+      updateValues.push(updates.title);
+    }
+    if (updates.description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`);
+      updateValues.push(updates.description);
+    }
+    if (updates.telegramLink !== undefined) {
+      updateFields.push(`telegram_link = $${paramIndex++}`);
+      updateValues.push(updates.telegramLink);
+    }
+    if (updates.telegramUsername !== undefined) {
+      updateFields.push(`telegram_username = $${paramIndex++}`);
+      updateValues.push(updates.telegramUsername);
+    }
+    if (updates.categoryId !== undefined) {
+      updateFields.push(`category_id = $${paramIndex++}`);
+      updateValues.push(updates.categoryId);
+    }
+    if (updates.subcategoryId !== undefined) {
+      updateFields.push(`subcategory_id = $${paramIndex++}`);
+      updateValues.push(updates.subcategoryId);
+    }
+    if (updates.coverImage !== undefined) {
+      updateFields.push(`cover_image = $${paramIndex++}`);
+      updateValues.push(updates.coverImage);
+    }
+    if (updates.isPrivate !== undefined) {
+      updateFields.push(`is_private = $${paramIndex++}`);
+      updateValues.push(updates.isPrivate);
+    }
+
+    if (updateFields.length === 0) {
+      return getResourceById(resourceId);
+    }
+
+    // Добавляем updated_at
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    updateValues.push(resourceId);
+    
+    const updateQuery = `
+      UPDATE resources
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await query(updateQuery, updateValues);
+    
+    if (result.rows && result.rows.length > 0) {
+      return mapRowToResource(result.rows[0]);
+    }
+    
+    if (Array.isArray(result) && result.length > 0) {
+      return mapRowToResource(result[0]);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error updating resource:', error);
+    return null;
+  }
+}
+
 // Преобразование строки БД в объект ресурса
 function mapRowToResource(row) {
   if (!row) return null;

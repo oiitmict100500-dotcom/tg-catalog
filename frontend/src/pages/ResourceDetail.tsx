@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import authService from '../services/auth.service';
+import EditResourceModal from '../components/EditResourceModal';
 import './ResourceDetail.css';
 
 function ResourceDetail() {
@@ -8,10 +10,22 @@ function ResourceDetail() {
   const [resource, setResource] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [review, setReview] = useState({ comment: '', rating: 5 });
+  const [user, setUser] = useState<any>(null);
+  const [editingResource, setEditingResource] = useState<any>(null);
 
   useEffect(() => {
     loadResource();
+    checkUser();
   }, [id]);
+
+  const checkUser = async () => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Error checking user:', error);
+    }
+  };
 
   const loadResource = async () => {
     try {
@@ -45,9 +59,31 @@ function ResourceDetail() {
     return <div className="error">Ресурс не найден</div>;
   }
 
+  const handleSaveResource = () => {
+    loadResource();
+  };
+
   return (
     <div className="resource-detail">
-      <Link to="/" className="back-link">← Назад к каталогу</Link>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Link to="/" className="back-link">← Назад к каталогу</Link>
+        {user?.role === 'admin' && resource && (
+          <button
+            onClick={() => setEditingResource(resource)}
+            style={{
+              padding: '10px 20px',
+              background: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+            }}
+          >
+            ✏️ Редактировать
+          </button>
+        )}
+      </div>
       
       <div className="resource-header">
         {resource.coverImage && (
@@ -121,6 +157,14 @@ function ResourceDetail() {
           <button type="submit" className="btn-submit">Отправить отзыв</button>
         </form>
       </div>
+
+      {editingResource && (
+        <EditResourceModal
+          resource={editingResource}
+          onClose={() => setEditingResource(null)}
+          onSave={handleSaveResource}
+        />
+      )}
     </div>
   );
 }

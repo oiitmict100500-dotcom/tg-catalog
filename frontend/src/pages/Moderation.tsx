@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import authService from '../services/auth.service';
+import EditResourceModal from '../components/EditResourceModal';
 import './Moderation.css';
 
 interface Submission {
@@ -307,6 +308,14 @@ function Moderation() {
             </div>
           ))}
         </div>
+      )}
+
+      {editingResource && (
+        <EditResourceModal
+          resource={editingResource}
+          onClose={() => setEditingResource(null)}
+          onSave={handleSaveResource}
+        />
       )}
     </div>
   );
