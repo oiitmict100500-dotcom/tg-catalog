@@ -1,78 +1,125 @@
 // Модуль для подключения к PostgreSQL
-// Поддерживает Vercel Postgres и внешние PostgreSQL базы данных
+// Поддерживает Vercel Postgres (@vercel/postgres) и внешние PostgreSQL базы данных (pg)
 
-let isVercelPostgres = false;
+let dbType = null; // 'vercel' или 'pg'
 let pgPool = null;
+let vercelSql = null;
 
 // Инициализация подключения к базе данных
-export async function getPool() {
-  // Определяем тип подключения один раз
-  if (isVercelPostgres === false && !pgPool) {
+async function initDatabase() {
+  if (dbType !== null) {
+    return; // Уже инициализировано
+  }
+
+  try {
+    // Проверяем наличие @vercel/postgres (старый Vercel Postgres)
     if (process.env.POSTGRES_URL && !process.env.DATABASE_URL) {
-      // Vercel Postgres - не используем pool, используем прямой sql
-      isVercelPostgres = true;
-      console.log('✅ Using Vercel Postgres');
-      return null; // Для Vercel Postgres не нужен pool
-    } else if (process.env.DATABASE_URL) {
-      // Внешний PostgreSQL (Supabase, Neon, и т.д.)
+      try {
+        const postgres = await import('@vercel/postgres');
+        vercelSql = postgres.sql;
+        dbType = 'vercel';
+        console.log('✅ Using Vercel Postgres (@vercel/postgres)');
+        
+        // Проверяем подключение
+        await vercelSql`SELECT 1`;
+        console.log('✅ Vercel Postgres connection verified');
+        return;
+      } catch (e) {
+        console.warn('⚠️ @vercel/postgres not available, trying pg...', e.message);
+      }
+    }
+
+    // Используем обычный PostgreSQL через pg (Neon, Supabase, и т.д.)
+    if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
       const { Pool } = await import('pg');
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      
       pgPool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+        connectionString: connectionString,
+        ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : 
+             connectionString.includes('sslmode=require') ? { rejectUnauthorized: false } :
+             connectionString.includes('neon.tech') || connectionString.includes('supabase.co') ? { rejectUnauthorized: false } :
+             false,
       });
-      console.log('✅ Connected to external PostgreSQL');
+      dbType = 'pg';
+      console.log('✅ Connected to PostgreSQL via pg');
       
       // Проверяем подключение
       await pgPool.query('SELECT 1');
-      console.log('✅ Database connection verified');
-    } else {
-      throw new Error('No database connection string found. Set POSTGRES_URL (for Vercel Postgres) or DATABASE_URL (for external PostgreSQL) environment variable.');
+      console.log('✅ PostgreSQL connection verified');
+      return;
     }
-  }
 
-  return pgPool;
+    throw new Error('No database connection string found. Set POSTGRES_URL (for Vercel Postgres) or DATABASE_URL (for external PostgreSQL) environment variable.');
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    throw error;
+  }
 }
 
 // Выполнение SQL запроса
 export async function query(text, params) {
+  await initDatabase();
+
   try {
-    // Для Vercel Postgres используется другой API
-    if (isVercelPostgres || (process.env.POSTGRES_URL && !process.env.DATABASE_URL)) {
-      // Vercel Postgres использует sql из @vercel/postgres
-      const { sql } = await import('@vercel/postgres');
-      
-      // Vercel Postgres поддерживает параметризованные запросы через template literals
-      // Но для совместимости преобразуем параметры
+    if (dbType === 'vercel' && vercelSql) {
+      // Vercel Postgres использует template literals для параметризованных запросов
+      // Преобразуем стандартные параметры в template literal
       if (params && params.length > 0) {
-        // Используем sql template для параметризованных запросов
-        // Для простоты преобразуем в обычный запрос с экранированием
+        // Создаем функцию, которая будет использовать параметры
+        const parts = text.split(/\$\d+/);
+        const paramValues = [];
+        
+        // Извлекаем параметры из запроса
+        const paramMatches = text.match(/\$\d+/g) || [];
+        paramMatches.forEach((match, index) => {
+          const paramIndex = parseInt(match.substring(1)) - 1;
+          if (paramIndex < params.length) {
+            paramValues.push(params[paramIndex]);
+          }
+        });
+
+        // Строим template literal для Vercel Postgres
+        // Vercel Postgres использует sql`SELECT * FROM table WHERE id = ${value}`
+        // Но нам нужно преобразовать $1, $2 в template literal
+        
+        // Простой способ: используем sql.unsafe для прямого запроса с экранированием
         let queryText = text;
         params.forEach((param, index) => {
           const placeholder = `$${index + 1}`;
-          const value = param === null ? 'NULL' : 
-                       typeof param === 'string' ? `'${param.replace(/'/g, "''")}'` :
-                       typeof param === 'boolean' ? (param ? 'TRUE' : 'FALSE') :
-                       String(param);
+          let value;
+          if (param === null || param === undefined) {
+            value = 'NULL';
+          } else if (typeof param === 'string') {
+            // Экранируем строки
+            value = `'${param.replace(/'/g, "''")}'`;
+          } else if (typeof param === 'boolean') {
+            value = param ? 'TRUE' : 'FALSE';
+          } else {
+            value = String(param);
+          }
           queryText = queryText.replace(placeholder, value);
         });
-        const result = await sql.query(queryText);
-        return { rows: result.rows || result };
+        
+        // Используем sql.unsafe для выполнения запроса
+        const { sql } = await import('@vercel/postgres');
+        const result = await sql.unsafe(queryText);
+        return { rows: result.rows || result || [] };
       } else {
-        const result = await sql.query(text);
-        return { rows: result.rows || result };
+        const result = await vercelSql.unsafe(text);
+        return { rows: result.rows || result || [] };
       }
+    } else if (dbType === 'pg' && pgPool) {
+      // Обычный PostgreSQL через pg
+      return await pgPool.query(text, params);
     } else {
-      // Обычный PostgreSQL (pg)
-      const db = await getPool();
-      if (!db) {
-        throw new Error('Database pool not initialized');
-      }
-      return await db.query(text, params);
+      throw new Error('Database not initialized');
     }
   } catch (error) {
     console.error('❌ Query error:', error);
     console.error('Query:', text);
     console.error('Params:', params);
+    console.error('DB Type:', dbType);
     throw error;
   }
 }
@@ -116,11 +163,13 @@ export async function initTables() {
 
 // Закрытие подключения (для тестирования)
 export async function closePool() {
-  if (pool) {
-    if (typeof pool.end === 'function') {
-      await pool.end();
+  if (pgPool) {
+    if (typeof pgPool.end === 'function') {
+      await pgPool.end();
     }
-    pool = null;
+    pgPool = null;
+    dbType = null;
+    vercelSql = null;
     console.log('✅ Database connection closed');
   }
 }
