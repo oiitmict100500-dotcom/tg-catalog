@@ -138,6 +138,7 @@ export default async function handler(req, res) {
     method: req.method,
     url: req.url,
     query: req.query,
+    body: req.body,
     hasAuth: !!req.headers.authorization,
   });
 
@@ -155,6 +156,7 @@ export default async function handler(req, res) {
     // Проверка авторизации админа
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ No authorization header');
       return res.status(401).json({ message: 'Требуется авторизация' });
     }
 
@@ -163,17 +165,21 @@ export default async function handler(req, res) {
     try {
       const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
       user = decoded;
+      console.log('✅ User decoded:', { id: user.id, username: user.username, role: user.role });
     } catch (e) {
+      console.error('❌ Token decode error:', e.message);
       return res.status(401).json({ message: 'Неверный токен' });
     }
 
     // Проверка роли админа
     if (user.role !== 'admin') {
+      console.error('❌ User is not admin:', user.role);
       return res.status(403).json({ message: 'Доступ запрещен. Требуются права администратора' });
     }
 
     // Определяем действие по query параметру или body
     const action = req.query.action || req.body?.action;
+    console.log('🔍 Action determined:', action, 'from', req.query.action ? 'query' : 'body');
 
     // GET /api/moderation?action=pending - получение заявок на модерацию
     if (req.method === 'GET' && (!action || action === 'pending')) {
