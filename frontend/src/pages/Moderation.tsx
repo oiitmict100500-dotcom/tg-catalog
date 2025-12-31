@@ -82,34 +82,57 @@ function Moderation() {
     setLoadingSubmissions(true);
     try {
       const token = authService.getToken();
+      if (!token) {
+        console.error('❌ No auth token found');
+        alert('Требуется авторизация');
+        navigate('/admin');
+        return;
+      }
+      
       console.log('📤 Loading submissions from API...');
+      console.log('🔍 Token preview:', token.substring(0, 20) + '...');
+      
       const response = await axios.get('/api/moderation?action=pending', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      
       console.log('📥 API response:', {
-        count: response.data.count,
-        submissions: response.data.submissions,
+        status: response.status,
+        count: response.data?.count,
+        submissionsCount: response.data?.submissions?.length || 0,
+        submissions: response.data?.submissions,
+        fullData: response.data,
       });
-      setSubmissions(response.data.submissions || []);
+      
+      setSubmissions(response.data?.submissions || []);
       
       // Если заявок нет, показываем информацию
-      if (!response.data.submissions || response.data.submissions.length === 0) {
+      if (!response.data?.submissions || response.data.submissions.length === 0) {
         console.warn('⚠️ No submissions received from API');
+        console.warn('Response data:', response.data);
       }
     } catch (error: any) {
       console.error('❌ Error loading submissions:', error);
       console.error('Error details:', {
+        message: error.message,
         status: error.response?.status,
-        message: error.response?.data?.message,
+        statusText: error.response?.statusText,
         data: error.response?.data,
+        url: error.config?.url,
+        hasAuth: !!authService.getToken(),
       });
+      
       if (error.response?.status === 401 || error.response?.status === 403) {
         alert('Ошибка доступа. Проверьте права администратора.');
         navigate('/admin');
+      } else if (error.response?.status === 404) {
+        console.error('❌ API endpoint not found. Check if function is deployed.');
+        alert('API endpoint не найден. Проверьте деплой.');
       } else {
         console.error('Failed to load submissions:', error.message);
+        alert('Ошибка загрузки заявок: ' + (error.response?.data?.message || error.message));
       }
     } finally {
       setLoadingSubmissions(false);
