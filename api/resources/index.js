@@ -60,23 +60,42 @@ async function getResourcesByCategory(categoryId, page = 1, limit = 20) {
     const total = parseInt(countRow.total || countRow.TOTAL || 0);
     
     // Преобразуем строки БД в объекты ресурсов
-    const mappedResources = resources.map((row: any) => ({
-      id: row.id || row.ID,
-      title: row.title || row.TITLE,
-      description: row.description || row.DESCRIPTION || '',
-      telegramLink: row.telegram_link || row.TELEGRAM_LINK || row.telegramLink,
-      telegramUsername: row.telegram_username || row.TELEGRAM_USERNAME || row.telegramUsername,
-      categoryId: row.category_id || row.CATEGORY_ID || row.categoryId,
-      subcategoryId: row.subcategory_id || row.SUBCATEGORY_ID || row.subcategoryId,
-      coverImage: row.cover_image || row.COVER_IMAGE || row.coverImage,
-      isPrivate: row.is_private || row.IS_PRIVATE || row.isPrivate || false,
-      authorId: row.author_id || row.AUTHOR_ID || row.authorId,
-      authorUsername: row.author_username || row.AUTHOR_USERNAME || row.authorUsername,
-      isPaid: row.is_paid || row.IS_PAID || row.isPaid || false,
-      paidUntil: row.paid_until || row.PAID_UNTIL || row.paidUntil,
-      createdAt: row.created_at || row.CREATED_AT || row.createdAt,
-      updatedAt: row.updated_at || row.UPDATED_AT || row.updatedAt,
-    }));
+    const mappedResources = resources.map((row: any) => {
+      const categoryId = row.category_id || row.CATEGORY_ID || row.categoryId;
+      const categoryMap: Record<string, { type: string; name: string }> = {
+        '1': { type: 'channel', name: 'Каналы' },
+        '2': { type: 'group', name: 'Группы' },
+        '3': { type: 'bot', name: 'Боты' },
+        '4': { type: 'sticker', name: 'Стикерпаки' },
+        '5': { type: 'emoji', name: 'Эмодзипаки' },
+      };
+      const categoryInfo = categoryMap[categoryId] || { type: 'other', name: 'Другое' };
+      
+      return {
+        id: row.id || row.ID,
+        title: row.title || row.TITLE,
+        description: row.description || row.DESCRIPTION || '',
+        telegramLink: row.telegram_link || row.TELEGRAM_LINK || row.telegramLink,
+        telegramUsername: row.telegram_username || row.TELEGRAM_USERNAME || row.telegramUsername,
+        categoryId: categoryId,
+        category: {
+          id: categoryId,
+          ...categoryInfo,
+        },
+        subcategoryId: row.subcategory_id || row.SUBCATEGORY_ID || row.subcategoryId,
+        coverImage: row.cover_image || row.COVER_IMAGE || row.coverImage,
+        isPrivate: row.is_private || row.IS_PRIVATE || row.isPrivate || false,
+        authorId: row.author_id || row.AUTHOR_ID || row.authorId,
+        authorUsername: row.author_username || row.AUTHOR_USERNAME || row.authorUsername,
+        isPaid: row.is_paid || row.IS_PAID || row.isPaid || false,
+        paidUntil: row.paid_until || row.PAID_UNTIL || row.paidUntil,
+        createdAt: row.created_at || row.CREATED_AT || row.createdAt,
+        updatedAt: row.updated_at || row.UPDATED_AT || row.updatedAt,
+        viewCount: 0,
+        rating: 0,
+        reviewCount: 0,
+      };
+    });
     
     return {
       resources: mappedResources,
