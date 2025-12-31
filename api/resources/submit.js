@@ -4,20 +4,29 @@
 import { addSubmission, getStorageInfo } from '../moderation/db-storage.js';
 
 export default async function handler(req, res) {
+  console.log('📥 Submit resource request received:', {
+    method: req.method,
+    hasBody: !!req.body,
+    bodyKeys: req.body ? Object.keys(req.body) : [],
+  });
+
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request, returning 200');
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
+    console.warn('⚠️ Invalid method:', req.method);
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
+    console.log('🔍 Processing submission...');
     // Парсим JSON данные
     const data = req.body || {};
 
@@ -169,13 +178,22 @@ export default async function handler(req, res) {
       // В продакшене здесь можно добавить fallback или уведомление
     }
 
+    console.log('✅ Submission processed successfully:', submissionId);
     return res.status(200).json({ 
       message: 'Заявка отправлена на модерацию',
       id: submissionId,
     });
   } catch (error) {
-    console.error('Error submitting resource:', error);
-    return res.status(500).json({ message: 'Ошибка при отправке заявки' });
+    console.error('❌ Error submitting resource:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+    });
+    return res.status(500).json({ 
+      message: 'Ошибка при отправке заявки',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 }
 

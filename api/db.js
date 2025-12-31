@@ -11,10 +11,19 @@ async function initDatabase() {
     return; // Уже инициализировано
   }
 
+  console.log('🔧 Initializing database connection...');
+  console.log('🔍 Environment check:', {
+    hasPostgresUrl: !!process.env.POSTGRES_URL,
+    hasDatabaseUrl: !!process.env.DATABASE_URL,
+    postgresUrlLength: process.env.POSTGRES_URL?.length || 0,
+    databaseUrlLength: process.env.DATABASE_URL?.length || 0,
+  });
+
   try {
     // Проверяем наличие @vercel/postgres (старый Vercel Postgres)
     if (process.env.POSTGRES_URL && !process.env.DATABASE_URL) {
       try {
+        console.log('🔍 Trying Vercel Postgres...');
         const postgres = await import('@vercel/postgres');
         vercelSql = postgres.sql;
         dbType = 'vercel';
@@ -26,13 +35,17 @@ async function initDatabase() {
         return;
       } catch (e) {
         console.warn('⚠️ @vercel/postgres not available, trying pg...', e.message);
+        console.error('Vercel Postgres error:', e);
       }
     }
 
     // Используем обычный PostgreSQL через pg (Neon, Supabase, и т.д.)
     if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
-      const { Pool } = await import('pg');
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      console.log('🔍 Trying PostgreSQL via pg...');
+      console.log('🔍 Connection string preview:', connectionString ? connectionString.substring(0, 20) + '...' : 'MISSING');
+      
+      const { Pool } = await import('pg');
       
       pgPool = new Pool({
         connectionString: connectionString,
@@ -42,17 +55,25 @@ async function initDatabase() {
              false,
       });
       dbType = 'pg';
-      console.log('✅ Connected to PostgreSQL via pg');
+      console.log('✅ Created PostgreSQL pool');
       
       // Проверяем подключение
+      console.log('🔍 Testing connection...');
       await pgPool.query('SELECT 1');
       console.log('✅ PostgreSQL connection verified');
       return;
     }
 
-    throw new Error('No database connection string found. Set POSTGRES_URL (for Vercel Postgres) or DATABASE_URL (for external PostgreSQL) environment variable.');
+    const errorMsg = 'No database connection string found. Set POSTGRES_URL (for Vercel Postgres) or DATABASE_URL (for external PostgreSQL) environment variable.';
+    console.error('❌ ' + errorMsg);
+    throw new Error(errorMsg);
   } catch (error) {
     console.error('❌ Database initialization error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
     throw error;
   }
 }

@@ -93,12 +93,20 @@ async function createResourceFromSubmission(submission) {
 }
 
 export default async function handler(req, res) {
+  console.log('📥 Moderation request received:', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    hasAuth: !!req.headers.authorization,
+  });
+
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request, returning 200');
     return res.status(200).end();
   }
 

@@ -115,16 +115,24 @@ async function getResourcesByCategory(categoryId, page = 1, limit = 20) {
 }
 
 export default async function handler(req, res) {
+  console.log('📥 Resources request received:', {
+    method: req.method,
+    query: req.query,
+    url: req.url,
+  });
+
   // Устанавливаем CORS заголовки
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request, returning 200');
     return res.status(200).end();
   }
 
   if (req.method !== 'GET') {
+    console.warn('⚠️ Invalid method:', req.method);
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
