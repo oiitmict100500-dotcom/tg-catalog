@@ -21,8 +21,16 @@ async function ensureTables() {
 
 // Создание ресурса из одобренной заявки
 async function createResourceFromSubmission(submission) {
+  console.log('🔨 createResourceFromSubmission CALLED with:', {
+    submissionId: submission.id,
+    title: submission.title,
+    categoryId: submission.categoryId,
+    hasData: !!submission,
+  });
+  
   try {
     await ensureTables();
+    console.log('✅ Tables ensured');
     
     const resourceId = 'resource-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
