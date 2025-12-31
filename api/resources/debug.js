@@ -1,9 +1,11 @@
 // Диагностический endpoint для проверки ресурсов
 // Vercel Serverless Function
+// Доступен по /api/resources/debug
 
 import { query, initTables } from '../db.js';
 
 export default async function handler(req, res) {
+  console.log('📥 Debug endpoint called:', req.method, req.url);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

@@ -1,9 +1,11 @@
 // Тестовый endpoint для проверки ресурсов в базе данных
 // Vercel Serverless Function
+// Доступен по /api/resources/test
 
 import { query, initTables } from '../db.js';
 
 export default async function handler(req, res) {
+  console.log('📥 Test endpoint called:', req.method, req.url);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

@@ -169,6 +169,7 @@ export default async function handler(req, res) {
     console.log('📋 Loading resources request:', {
       categoryId: categoryId || 'all',
       page: pageNum,
+      query: req.query,
     });
     
     const result = await getResourcesByCategory(categoryId, pageNum, 20);
@@ -181,6 +182,26 @@ export default async function handler(req, res) {
       resourceIds: result.resources.map((r: any) => r.id),
       resourceTitles: result.resources.map((r: any) => r.title),
     });
+    
+    // Если ресурсов нет, проверяем, есть ли они вообще в базе
+    if (result.resources.length === 0) {
+      try {
+        const { query: checkQuery } = await import('../db.js');
+        const allCount = await checkQuery('SELECT COUNT(*) as total FROM resources');
+        const totalAll = allCount.rows ? parseInt(allCount.rows[0].total || 0) : 
+                        (Array.isArray(allCount) ? parseInt(allCount[0]?.total || 0) : 0);
+        console.log('🔍 Total resources in database (all categories):', totalAll);
+        
+        if (categoryId) {
+          const categoryCount = await checkQuery('SELECT COUNT(*) as total FROM resources WHERE category_id = $1', [categoryId]);
+          const totalInCategory = categoryCount.rows ? parseInt(categoryCount.rows[0].total || 0) : 
+                                  (Array.isArray(categoryCount) ? parseInt(categoryCount[0]?.total || 0) : 0);
+          console.log('🔍 Total resources in category', categoryId + ':', totalInCategory);
+        }
+      } catch (e) {
+        console.error('Error checking resources count:', e);
+      }
+    }
     
     // Если ресурсов нет, проверяем, есть ли они вообще в базе
     if (result.resources.length === 0 && categoryId) {
